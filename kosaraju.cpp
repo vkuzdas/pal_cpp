@@ -1,3 +1,6 @@
+//
+// Created by kuzdavoj@fel.cvut.cz on 9/17/2022.
+//
 #include <iostream>
 #include <vector>
 #include <stack>
@@ -153,7 +156,7 @@ vector<int> iterative_DFS(vector<vector<int>> &adj) {
     unordered_set<int> seen;
 
     for (int i = 0; i < adj.size(); ++i) {
-        if (seen.find(i) == seen.end()) {
+        if (seen.find(i) == seen.end()) { // TODO: can I get to constant check?
             stack<int> stack({i}); // na stacku startVertex
 
             while (!stack.empty()) {
