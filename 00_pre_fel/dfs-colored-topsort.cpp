@@ -1,27 +1,44 @@
+//
+// Created by kuzdavoj@fel.cvut.cz on 9/17/2022.
+//
+
 #include <iostream>
 #include <vector>
 #include <stack>
 #include <unordered_set>
 #include <cassert>
+#include <queue>
 
 using namespace std;
 
-vector<int> iterative_DFS(vector<vector<int>> &adj);
-vector<int> iterative_colored_topsort(vector<vector<int>> &adj);
-
+vector<int> dfs(vector<vector<int>> &adj);
+vector<int> bfs(vector<vector<int>> &adj);
+vector<int> top_sort(vector<vector<int>> &adj);
 bool inSet(unordered_set<int> set, int v);
 
 int main() {
     vector<vector<int>> adj1 {{},{3},{1},{2,3,4},{3}};
     vector<vector<int>> adj2 {{3},{0},{},{2,5},{0,1},{},{},{6}};
 
-    vector<int> dfsPath = iterative_DFS(adj2);
+    vector<int> dfsPath = dfs(adj2);
     vector<int> expected{0,3,5,2,1,4,6,7};
     assert(dfsPath == expected);
 
-    vector<int> topsort = iterative_colored_topsort(adj2);
-    vector<int> expected2{5,2,3,0,1,4,6,7};
-    assert(topsort == expected2);
+    vector<int> topsort = top_sort(adj2);
+    expected = {5,2,3,0,1,4,6,7};
+    assert(topsort == expected);
+
+    vector<vector<int>> adj3{{3}, {7}, {5}, {6}, {1}, {8}, {0}, {4}, {2}};
+    vector<int> topsortedadj = top_sort(adj3);
+    vector<vector<int>> bfsArg{{1,2},{3},{4},{},{}};
+
+    vector<int> dfsPath2 = dfs(bfsArg);
+    expected = {0,2,4,1,3};
+    assert(dfsPath2 == expected);
+
+    vector<int> bfsPath = bfs(bfsArg);
+    expected = {0,1,2,3,4};
+    assert(bfsPath == expected);
 
     return 0;
 }
@@ -40,9 +57,9 @@ int main() {
  * @param adj - graf jako adjList
  * @return topologicke ocislovani (poradi odzadu; tzn sink<-begin)
  */
-vector<int> iterative_colored_topsort(vector<vector<int>> &adj) {
+vector<int> top_sort(vector<vector<int>> &adj) {
     int WHITE = 1; // fresh
-    int GRAY = 2;  // current
+    int GRAY = 2;  // curr ent
     int BLACK = 3; // closed
 
     vector<int> colors(adj.size(), WHITE);
@@ -67,7 +84,7 @@ vector<int> iterative_colored_topsort(vector<vector<int>> &adj) {
 
             for (int neighbor : adj[curr]) {      // 2) projdem sousedy
                 if (colors[neighbor] == GRAY) {   // 3) pokud je soused zabarveny, nasli jsme cyklus
-                    return {}; /// tohle mozna zmenit pokud delame Kosaraju
+//                    return {}; /// tohle mozna zmenit pokud delame Kosaraju
                 } else if (colors[neighbor] == WHITE) { // 4) fresh souseda hodime na stack pro DFS
                     stack.push(neighbor);
                 }
@@ -89,7 +106,7 @@ vector<int> iterative_colored_topsort(vector<vector<int>> &adj) {
  * @param adj - graf jako adjList
  * @return cesta grafem
  */
-vector<int> iterative_DFS(vector<vector<int>> &adj) {
+vector<int> dfs(vector<vector<int>> &adj) {
     vector<int> path;
     unordered_set<int> seen;
 
@@ -104,6 +121,27 @@ vector<int> iterative_DFS(vector<vector<int>> &adj) {
             for (int neighbor : adj[curr]) {
                 if (inSet(seen, neighbor)) continue; // neighbor not seen yet (not found in seen)
                 stack.push(neighbor);
+            }
+        }
+    }
+    return path;
+}
+
+vector<int> bfs(vector<vector<int>> &adj) {
+    vector<int> path;
+    unordered_set<int> seen;
+
+    for (int startV = 0; startV < adj.size(); ++startV) { // pro uzly v grafu
+        if (inSet(seen, startV)) continue;
+        queue<int> q({startV});
+        while (!q.empty()) { // pro uzly na stacku
+            int curr = q.front();
+            q.pop();
+            seen.insert(curr);
+            path.push_back(curr);
+            for (int neighbor : adj[curr]) {
+                if (inSet(seen, neighbor)) continue; // neighbor not seen yet (not found in seen)
+                q.push(neighbor);
             }
         }
     }
