@@ -1,0 +1,2 @@
+valgrind --leak-check=full -v ./a.out
+gcc <file.cpp> -lstdc++
