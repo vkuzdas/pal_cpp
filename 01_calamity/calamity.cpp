@@ -18,11 +18,11 @@ int main() {
     vector<vector<pair<int,int>>> adj{
         {{}},
         {{5,3}, {4,2}},
-        {{3,4}},
-        {{5,5},{4,4}},
-        {{3,6}},
-        {{2,6}},
-        {{}}
+        {{3,4}, {4,1}},
+        {{5,5},{4,4}, {5,1}},
+        {{3,6}, {3,2}, {4,3}},
+        {{2,6}, {5,3}},
+        {{3,4}, {2,5}}
     };
     int T = 6, D = 2, R = 7;
 //    int T, D, R; // V < 250k, D-towns < 2000, E < 450k
@@ -34,7 +34,6 @@ int main() {
     for (int i = 1; i <= D; ++i) { districts[i] = i; } // district belongs to itself
     assign_districts(adj, districts, D);
     vector<int> dexp = {0,1,2,1,2,1,2};
-    vector<int> texp = {INT32_MAX, INT32_MAX,INT32_MAX,1,1,2,2};
     assert(districts == dexp);
 
     cout << "  --hello\n";
@@ -86,6 +85,8 @@ void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts
         }
         seen.clear();
     }
+    vector<int> texp = {INT32_MAX, INT32_MAX,INT32_MAX,1,1,2,2};
+    assert(traversals == texp);
 }
 
 bool inSet(unordered_set<int> set, int v) {
