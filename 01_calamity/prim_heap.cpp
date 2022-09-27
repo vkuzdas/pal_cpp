@@ -2,33 +2,34 @@
 // Created by kuzdavoj@fel.cvut.cz on 9/26/2022.
 //
 
-
 #include <queue>
 #include <unordered_set>
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 using wd_pair = pair<int, int>;
 
 int prim_mst(vector<vector<wd_pair>> &adj, int startV);
 bool inSet(unordered_set<int> set, int v);
-//TODO: debug move to totalcost 6, there is something off
+
 int main() {
     vector<vector<wd_pair>> adj{
         {},
         {{1,2}, {1,3}, {1,4}},
-        {{6,5}},
-        {{2,5}},
-        {{5,6}},
-        {{1,7}},
-        {{1,7}},
-        {}
+        {{1,1}, {6,5}},
+        {{1,1}, {2,5}},
+        {{1,1}, {5,6}},
+        {{2,3}, {1,7}},
+        {{1,7}, {5,4}},
+        {{1,5}, {1,6}}
     };
     int r = prim_mst(adj, 1);
+    assert(r == 7);
     cout << r;
 }
 /**
- * input: adjList graph of form    src -> { {weight, destination}, {} }
+ * input: adjList graph in the form of    src -> { {weight, destination}, {} }
  */
 int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
     int total_cost = 0;
@@ -37,8 +38,7 @@ int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
     heap.push({0, startV});
 
     // traversal
-    // size-1 because of non-existent id(0) node
-    while (seen.size() < adj.size()-1) {
+    while (seen.size() < adj.size()-1) { // size-1 bcs of non-existent id(0) node
         wd_pair curr = heap.top();
         if (inSet(seen, curr.second)) continue; // skip visited
         heap.pop();
