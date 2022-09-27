@@ -29,12 +29,14 @@ int main() {
     cout << r;
 }
 /**
- * input: adjList graph in the form of    src -> { {weight, destination}, {} }
+ * input: adjList graph in the form of
+ *          src -> {{weight, destination}, {..}}
+ * output: integer value of MST
  */
 int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
     int total_cost = 0;
     unordered_set<int> seen;
-    priority_queue<wd_pair, vector<wd_pair>, greater<>> heap; /// MAX-heap:
+    priority_queue<wd_pair, vector<wd_pair>, greater<>> heap; /// MIN-heap (PQ is max heap by default)
     heap.push({0, startV});
 
     // traversal
