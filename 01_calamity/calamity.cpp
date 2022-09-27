@@ -40,18 +40,16 @@ int main() {
 
 int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, int district) {
     int total_cost = 0;
-    int to_visit = int(count(districts.begin(), districts.end(), district));
+    auto to_visit = int(count(districts.begin(), districts.end(), district));
     unordered_set<int> seen;
     priority_queue<wd_pair, vector<wd_pair>, greater<>> heap; /// MIN-heap (PQ is max heap by default)
     heap.push({0, district});
 
     // traversal
-    // TODO: stopping condition - district[district] count or
-    while (seen.size() < to_visit) { // size-1 bcs of non-existent id(0) node
-        cout << "size: " << seen.size();
+    while (seen.size() != to_visit) { // size-1 bcs of non-existent id(0) node
         wd_pair curr = heap.top();
-        if (inSet(seen, curr.second)) continue; // skip visited
         heap.pop();
+        if (inSet(seen, curr.second)) continue; // skip visited
         total_cost = total_cost + curr.first;
         seen.insert(curr.second);
 
