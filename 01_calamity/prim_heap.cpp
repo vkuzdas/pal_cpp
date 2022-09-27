@@ -10,7 +10,7 @@
 using namespace std;
 using wd_pair = pair<int, int>;
 
-int prim_mst(vector<vector<wd_pair>> &adj, int startV);
+int prim_mst_per_district(vector<vector<wd_pair>> &adj, int district);
 bool inSet(unordered_set<int> set, int v);
 
 int main() {
@@ -24,7 +24,7 @@ int main() {
         {{1,7}, {5,4}},
         {{1,5}, {1,6}}
     };
-    int r = prim_mst(adj, 1);
+    int r = prim_mst_per_district(adj, 1);
     assert(r == 7);
     cout << r;
 }
@@ -33,11 +33,11 @@ int main() {
  *          src -> {{weight, destination}, {..}}
  * output: integer value of MST
  */
-int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
+int prim_mst_per_district(vector<vector<wd_pair>> &adj, int district) {
     int total_cost = 0;
     unordered_set<int> seen;
     priority_queue<wd_pair, vector<wd_pair>, greater<>> heap; /// MIN-heap (PQ is max heap by default)
-    heap.push({0, startV});
+    heap.push({0, district});
 
     // traversal
     while (seen.size() < adj.size()-1) { // size-1 bcs of non-existent id(0) node

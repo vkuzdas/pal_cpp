@@ -7,51 +7,64 @@
 #include <queue>
 #include <unordered_set>
 #include <cassert>
+#include <algorithm>
 
 using namespace std;
+using wd_pair = pair<int, int>;
 
+int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, int district);
 void getInput(int R, vector<vector<pair<int,int>>>& adj);
 void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts, int D);
 bool inSet(unordered_set<int> set, int v);
 
 int main() {
-    vector<vector<pair<int,int>>> adj{
-        {{}},
-        {{5,3}, {4,2}},
-        {{3,4}, {4,1}},
-        {{5,5},{4,4}, {5,1}},
-        {{3,6}, {3,2}, {4,3}},
-        {{2,6}, {5,3}},
-        {{3,4}, {2,5}}
-    };
-    int T = 6, D = 2, R = 7;
-//    int T, D, R; // V < 250k, D-towns < 2000, E < 450k
-//    cin >> T >> D >> R;
-//    vector<vector<pair<int,int>>> adj(R); // src -> { {w1, dest1}, {w2, dest2} }
-//    getInput(R, adj);
+    int T, D, R; // V < 250k, D-towns < 2000, E < 450k
+    cin >> T >> D >> R;
+    vector<vector<pair<int,int>>> adj(R); // src -> { {w1, dest1}, {w2, dest2} }
+    getInput(R, adj);
 
-    vector<int> districts(R);
+    vector<int> districts(T+1);
     for (int i = 1; i <= D; ++i) { districts[i] = i; } // district belongs to itself
     assign_districts(adj, districts, D);
-    vector<int> dexp = {0,1,2,1,2,1,2};
-    assert(districts == dexp);
 
-    cout << "  --hello\n";
+    // do prim in D subgraphs
+    int total_cost = 0;
+    for (int i = 1; i <= D; ++i) {
+        int cost = prim_mst_per_district(adj, districts, i);
+        total_cost = total_cost + cost;
+    }
+    // do prim in a supergraph
+
     return 0;
 }
 
-void getInput(int R, vector<vector<pair<int,int>>>& adj) {
-    for (int i = 0; i < R; ++i) {
-        int src, dest, weight;
-        cin >> src >> dest >> weight;
-        if (src > dest) {
-            int temp = src;
-            src = dest;
-            dest = temp;
+int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, int district) {
+    int total_cost = 0;
+    int to_visit = int(count(districts.begin(), districts.end(), district));
+    unordered_set<int> seen;
+    priority_queue<wd_pair, vector<wd_pair>, greater<>> heap; /// MIN-heap (PQ is max heap by default)
+    heap.push({0, district});
+
+    // traversal
+    // TODO: stopping condition - district[district] count or
+    while (seen.size() < to_visit) { // size-1 bcs of non-existent id(0) node
+        cout << "size: " << seen.size();
+        wd_pair curr = heap.top();
+        if (inSet(seen, curr.second)) continue; // skip visited
+        heap.pop();
+        total_cost = total_cost + curr.first;
+        seen.insert(curr.second);
+
+        // neighbors
+        for (wd_pair neighPair : adj[curr.second]) {
+            if (districts[neighPair.second] != district) continue;// skip dest nodes that are not in this district
+            if (inSet(seen, neighPair.second)) continue; // skip visited
+            heap.push(neighPair);
         }
-        adj[src].push_back({weight, dest});
     }
+    return total_cost;
 }
+
 
 /**
  * modified BFS O(n+m)
@@ -85,11 +98,19 @@ void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts
         }
         seen.clear();
     }
-    vector<int> texp = {INT32_MAX, INT32_MAX,INT32_MAX,1,1,2,2};
-    assert(traversals == texp);
 }
 
 bool inSet(unordered_set<int> set, int v) {
     if(set.find(v) != set.end()) return true;
     return false;
 }
+
+void getInput(int R, vector<vector<pair<int,int>>>& adj) {
+    for (int i = 0; i < R; ++i) {
+        int src, dest, weight;
+        cin >> src >> dest >> weight;
+        adj[src].push_back({weight, dest});
+        adj[dest].push_back({weight, src});
+    }
+}
+
