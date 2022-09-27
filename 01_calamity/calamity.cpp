@@ -15,27 +15,27 @@ void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts
 bool inSet(unordered_set<int> set, int v);
 
 int main() {
-//    vector<vector<pair<int,int>>> adj{
-//        {{}},
-//        {{3,5}, {2,4}},
-//        {{4,3}},
-//        {{5,5},{4,4}},
-//        {{6,3}},
-//        {{6,2}},
-//        {{}}
-//    };
-//    int T = 6, D = 2, R = 7;
-    int T, D, R; // V < 250k, D-towns < 2000, E < 450k
-    cin >> T >> D >> R;
-    vector<vector<pair<int,int>>> adj(R);
-    getInput(R, adj);
+    vector<vector<pair<int,int>>> adj{
+        {{}},
+        {{5,3}, {4,2}},
+        {{3,4}},
+        {{5,5},{4,4}},
+        {{3,6}},
+        {{2,6}},
+        {{}}
+    };
+    int T = 6, D = 2, R = 7;
+//    int T, D, R; // V < 250k, D-towns < 2000, E < 450k
+//    cin >> T >> D >> R;
+//    vector<vector<pair<int,int>>> adj(R); // src -> { {w1, dest1}, {w2, dest2} }
+//    getInput(R, adj);
 
     vector<int> districts(R);
     for (int i = 1; i <= D; ++i) { districts[i] = i; } // district belongs to itself
     assign_districts(adj, districts, D);
-//    vector<int> dexp = {0,1,2,1,2,1,2};
-//    vector<int> texp = {INT32_MAX, INT32_MAX,INT32_MAX,1,1,2,2};
-//    assert(districts == dexp);
+    vector<int> dexp = {0,1,2,1,2,1,2};
+    vector<int> texp = {INT32_MAX, INT32_MAX,INT32_MAX,1,1,2,2};
+    assert(districts == dexp);
 
     cout << "  --hello\n";
     return 0;
@@ -50,7 +50,7 @@ void getInput(int R, vector<vector<pair<int,int>>>& adj) {
             src = dest;
             dest = temp;
         }
-        adj[src].push_back({dest, weight});
+        adj[src].push_back({weight, dest});
     }
 }
 
@@ -73,7 +73,7 @@ void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts
             q.pop();
             seen.insert(curr);
             for (pair<int,int> p : adj[curr]) {
-                int neighbor = p.first;
+                int neighbor = p.second;
                 if (inSet(seen, neighbor)) continue; // neighbor not seen yet (not found in seen)
                 if (neighbor <= D) continue; // ignore other district towns
                 level[neighbor] = level[curr] + 1;
