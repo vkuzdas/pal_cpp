@@ -7,6 +7,7 @@
 #include <queue>
 #include <unordered_set>
 #include <algorithm>
+#include <stack>
 
 using namespace std;
 using wd_pair = pair<int, int>;
@@ -17,29 +18,53 @@ void getInput(int R, vector<vector<pair<int,int>>>& adj);
 void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts, int D);
 bool inSet(unordered_set<int> set, int v);
 void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D);
+vector<int> dfs(vector<vector<wd_pair>> &adj);
 
 int main() {
     int T, D, R; // V < 250k, D-towns < 2000, E < 450k
     cin >> T >> D >> R;
-    vector<vector<pair<int,int>>> adj(R); // src -> { {w1, dest1}, {w2, dest2} }
+    vector<vector<pair<int,int>>> adj(T+1); // src -> { {w1, dest1}, {w2, dest2} }
     getInput(R, adj);
 
     vector<int> districts(T+1);
     for (int i = 1; i <= D; ++i) { districts[i] = i; } // district belongs to itself
-    assign_districts(adj, districts, D);
-
-    // do prim in D subgraphs
-    int total_cost = 0;
-    for (int i = 1; i <= D; ++i) {
-        int cost = prim_mst_per_district(adj, districts, i);
-        total_cost = total_cost + cost;
-    }
-
-    // do prim in the supergraph
-    condense_graph(adj, districts, D);
-    total_cost = total_cost + prim_mst(adj, 1);
-    cout << total_cost;
+    dfs(adj);
+//    assign_districts(adj, districts, D);
+//
+//    // do prim in D subgraphs
+//    int total_cost = 0;
+//    for (int i = 1; i <= D; ++i) {
+//        int cost = prim_mst_per_district(adj, districts, i);
+//        total_cost = total_cost + cost;
+//    }
+//
+//    // do prim in the supergraph
+//    condense_graph(adj, districts, D);
+//    total_cost = total_cost + prim_mst(adj, 1);
+//    cout << total_cost;
     return 0;
+}
+
+vector<int> dfs(vector<vector<wd_pair>> &adj) {
+    vector<int> path;
+    unordered_set<int> seen;
+
+    for (int startV = 1; startV < adj.size(); ++startV) { // pro uzly v grafu
+        if (inSet(seen, startV)) continue;
+        stack<int> s({startV});
+        while (!s.empty()) { // pro uzly na stacku
+            int curr = s.top();
+            s.pop();
+            seen.insert(curr);
+            path.push_back(curr);
+            for (auto p : adj[curr]) {
+                if (inSet(seen, p.second)) continue; // neighbor not seen yet (not found in seen)
+                s.push(p.second);
+            }
+            cout << " curr: " << curr << " seen: " << seen.size() << " s: " << s.size() << "\n";
+        }
+    }
+    return path;
 }
 
 /**
@@ -78,7 +103,6 @@ void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D)
         adj.erase(adj.begin() + src);
     }
 }
-
 
 int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
     int total_cost = 0;
@@ -130,7 +154,6 @@ int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, 
     }
     return total_cost;
 }
-
 
 /**
  * modified BFS O(n+m)
