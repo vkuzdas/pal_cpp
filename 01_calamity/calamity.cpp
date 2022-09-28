@@ -6,16 +6,17 @@
 #include <vector>
 #include <queue>
 #include <unordered_set>
-#include <cassert>
 #include <algorithm>
 
 using namespace std;
 using wd_pair = pair<int, int>;
 
 int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, int district);
+int prim_mst(vector<vector<wd_pair>> &adj, int startV);
 void getInput(int R, vector<vector<pair<int,int>>>& adj);
 void assign_districts(vector<vector<pair<int,int>>> &adj, vector<int> &districts, int D);
 bool inSet(unordered_set<int> set, int v);
+void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D);
 
 int main() {
     int T, D, R; // V < 250k, D-towns < 2000, E < 450k
@@ -33,11 +34,78 @@ int main() {
         int cost = prim_mst_per_district(adj, districts, i);
         total_cost = total_cost + cost;
     }
-    // do prim in a supergraph
 
+    // do prim in the supergraph
+    condense_graph(adj, districts, D);
+    total_cost = total_cost + prim_mst(adj, 1);
+    cout << total_cost;
     return 0;
 }
 
+/**
+ * Graph condensation
+ *      merges all nodes from a district into a single node denoted by district ID
+ *      edges within the district are erased
+ *      d1 -> d2 edges are preserved
+ */
+void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D) {
+    // kondenzace grafu:
+    // nahradit destination za district (dest nalezi distu)
+    for (auto src = 1; src < adj.size(); ++src) {
+        for (auto &nei_pair : adj[src]) {
+            nei_pair.second = districts[nei_pair.second];
+        }
+    }
+    // odstranit edges ktere vedou d1 -> d1
+    for (auto src = 1; src < adj.size(); ++src) {
+        vector<wd_pair> replacement;
+        for (wd_pair p : adj[src]) {
+            int dest = p.second;
+            int dest_dist = districts[dest];
+            int src_dist = districts[src];
+            if (dest_dist != src_dist) {
+                replacement.push_back(p);
+            }
+        }
+        adj[src] = replacement;
+    }
+    // move edge from node belonging to dist to original dist node
+    for (auto src = adj.size()-1; src > D; --src) { // from last src to last D
+        for (auto nei_pair : adj[src]) {
+            int src_dist = districts[src];
+            adj[src_dist].push_back(nei_pair);
+        }
+        adj.erase(adj.begin() + src);
+    }
+}
+
+
+int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
+    int total_cost = 0;
+    unordered_set<int> seen;
+    priority_queue<wd_pair, vector<wd_pair>, greater<>> heap; /// MIN-heap (PQ is max heap by default)
+    heap.push({0, startV});
+
+    // traversal
+    while (seen.size() < adj.size()-1) { // size-1 bcs of non-existent id(0) node
+        wd_pair curr = heap.top();
+        if (inSet(seen, curr.second)) continue; // skip visited
+        heap.pop();
+        total_cost = total_cost + curr.first;
+        seen.insert(curr.second);
+
+        // neighbors
+        for (wd_pair neighPair : adj[curr.second]) {
+            if (inSet(seen, neighPair.second)) continue; // skip visited
+            heap.push(neighPair);
+        }
+    }
+    return total_cost;
+}
+
+/**
+ * Runs Prim with heap within a district O((V+E)logV)
+ */
 int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, int district) {
     int total_cost = 0;
     auto to_visit = int(count(districts.begin(), districts.end(), district));
@@ -46,7 +114,7 @@ int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, 
     heap.push({0, district});
 
     // traversal
-    while (seen.size() != to_visit) { // size-1 bcs of non-existent id(0) node
+    while (seen.size() != to_visit) {
         wd_pair curr = heap.top();
         heap.pop();
         if (inSet(seen, curr.second)) continue; // skip visited
