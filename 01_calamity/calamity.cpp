@@ -5,37 +5,34 @@
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <unordered_set>
 #include <algorithm>
 
 using namespace std;
 using wd_pair = pair<int, int>;
 
-#include <chrono>
-#include <stack>
+//#include <chrono>
 
-using namespace std::chrono;
+//using namespace std::chrono;
 
 int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, int district);
 int prim_mst(vector<vector<wd_pair>> &adj, int startV);
 void getInput(int R, vector<vector<pair<int,int>>>& adj);
-bool inSet(unordered_set<int> set, int v);
 void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D);
 
 vector<int> fast_assign(vector<vector<pair<int, int>>> &adj, int D);
 
-void print_time(const char *string, std::chrono::time_point<std::chrono::system_clock> point);
+//void print_time(const char *string, std::chrono::time_point<std::chrono::system_clock> point);
 
 int main() {
-    std::chrono::time_point<std::chrono::system_clock> start = high_resolution_clock::now();
+//    std::chrono::time_point<std::chrono::system_clock> start = high_resolution_clock::now();
     int T, D, R; // V < 250k, D-towns < 2000, E < 450k
     cin >> T >> D >> R;
     vector<vector<pair<int,int>>> adj(T+1); // src -> { {w1, dest1}, {w2, dest2} }
     getInput(R, adj);
-    print_time("getinput ends at: ", start);
+//    print_time("getinput ends at: ", start);
 
     vector<int> districts = fast_assign(adj,  D);
-    print_time("fastassign ends at: ", start);
+//    print_time("fastassign ends at: ", start);
 
     // do prim in D subgraphs
     int total_cost = 0;
@@ -44,23 +41,23 @@ int main() {
         total_cost = total_cost + cost;
 //        setbuf(stdout, 0); cout << total_cost << " \n";
     }
-    print_time("prim_mst_per_district ends at: ", start);
+//    print_time("prim_mst_per_district ends at: ", start);
 
     // do prim in the supergraph
     condense_graph(adj, districts, D);
     total_cost = total_cost + prim_mst(adj, 1);
     cout << total_cost;
-    print_time("total time: ", start);
+//    print_time("total time: ", start);
     return 0;
 }
 
-void print_time(const char *string, std::chrono::time_point<std::chrono::system_clock> point) {
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<nanoseconds>(stop - point);
-    setbuf(stdout, 0);
-    cout << string;
-    cout << duration.count()*0.000000001 << " s \n";
-}
+//void print_time(const char *string, std::chrono::time_point<std::chrono::system_clock> point) {
+//    auto stop = high_resolution_clock::now();
+//    auto duration = duration_cast<nanoseconds>(stop - point);
+//    setbuf(stdout, 0);
+//    cout << string;
+//    cout << duration.count()*0.000000001 << " s \n";
+//}
 
 
 /**
@@ -106,7 +103,6 @@ void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D)
 int prim_mst(vector<vector<wd_pair>> &adj, int startV) {
     int total_cost = 0;
     size_t counter = 0;
-    unordered_set<int> seen;
     vector<bool> seenBool(adj.size(), false);
     priority_queue<wd_pair, vector<wd_pair>, greater<wd_pair>> heap; /// MIN-heap (PQ is max heap by default)
     heap.push({0, startV});
@@ -178,11 +174,6 @@ vector<int> fast_assign(vector<vector<pair<int, int>>> &adj, int D) {
         }
     }
     return districts;
-}
-
-bool inSet(unordered_set<int> set, int v) {
-    if(set.find(v) != set.end()) return true;
-    return false;
 }
 
 void getInput(int R, vector<vector<pair<int,int>>>& adj) {
