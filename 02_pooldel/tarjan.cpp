@@ -19,6 +19,7 @@ int main() {
     return 0;
 }
 
+// todo: docs
 vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N) { // consider const
     const unsigned int UNDEF = 4294967295;
     vector<unsigned int> index(N, UNDEF);
