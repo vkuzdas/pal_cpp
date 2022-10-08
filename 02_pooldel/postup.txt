@@ -9,6 +9,7 @@
         d] comparison of cost and var of all SCC's
 6) na papir jsem napsal rozhrani funkci
     nektere funkce jsem popsal detailneji pokud mi nebyla zrejma jejich implementace
+
 7) pokousel jsem se implementovat tarjana podle pythonu https://stackoverflow.com/questions/46511682/non-recursive-version-of-tarjans-algorithm
     to se mi nepovedlo vecer, tak jsem rano zkopiroval kosara
 8) kosar je nekde seknutej, nejede na neizolovanych grafech
@@ -19,7 +20,7 @@
 
 12) projedu tarjana na vsech datech a s valgrindem a memcheckem
 13) tarjan na vsech datech s gcc-complete funguje, jede i memcheck, je tam teda alokovano 12GB ale je to na heapu tzn "free-mem"??
-
+14) implementace delete WC's
 
 
 

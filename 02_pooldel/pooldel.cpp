@@ -7,11 +7,13 @@
 #include <vector>
 #include <algorithm>
 #include <stack>
+#include <climits>
 
 using namespace std;
 
 vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M);
 vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N);
+void delete_wcs(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj);
 
 int main() {
     // 1) identify SCC's
@@ -19,15 +21,39 @@ int main() {
     // 3) DFS in MAX(var) to get min(cost)
     unsigned int N, M;
     cin >> N >> M;
+
     vector<vector<unsigned int>> adj = getInput(N, M);
     vector<vector<unsigned int>> comps = tarjan_scc(adj, N);
     cout << comps.size();
 
+    delete_wcs(comps, adj);
+
     return 0;
 }
 
+void delete_wcs(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj) {
+    for (unsigned int i = 0; i < comps.size(); ++i) {
+        vector<unsigned int> scc = comps[i];
+        vector<unsigned int> index_to_delete;
+        for (unsigned int j = 0; j < scc.size(); ++j) {
+            unsigned int src = scc[j];
+            for (unsigned int k = 0; k < adj[src].size(); ++k) {
+                unsigned int dst = adj[src][k];
+                if(std::find(scc.begin(), scc.end(), dst) == scc.end()) {
+                    index_to_delete.push_back(j);
+                }
+            }
+        }
+        for (unsigned int index : index_to_delete) {
+            scc[index] = UINT_MAX;
+        }
+        comps[i] = scc;
+    }
+}
+
+// TODO: docs
 vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N) { // consider const
-    const unsigned int UNDEF = 4294967295;
+    const unsigned int UNDEF = UINT_MAX;
     vector<unsigned int> index(N, UNDEF);
     vector<unsigned int> lowlink(N, UNDEF);
     vector<bool> on_stack(N, false);
