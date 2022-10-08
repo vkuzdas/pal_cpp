@@ -1,2 +1,3 @@
 valgrind --leak-check=full -v ./a.out
-gcc <file.cpp> -lstdc++
+gcc -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Wstrict-overflow=5 -Wwrite-strings -Waggregate-return -Wcast-qual -Wswitch-default -Wswitch-enum -Wconversion -Wunreachable-code -Wno-unused-variable -Wno-infinite-recursion -Wshadow -Wno-shadow-field-in-constructor-modified -Wuninitialized -Wunused-label -pedantic-errors pooldel.cpp -lstdc++
+gcc -Wextra -Wall -Wfloat-equal -Wundef -Wshadow -Wpointer-arith -Wcast-align -Wstrict-overflow=5 -Wwrite-strings -Wcast-qual -Wswitch-default -Wswitch-enum -Wconversion -Wunreachable-code -Wno-unused-variable -Wno-infinite-recursion -Wshadow -Wno-shadow-field-in-constructor-modified -Wuninitialized -Wunused-label -pedantic-errors pooldel.cpp -lstdc++

@@ -1,0 +1,27 @@
+1) precetl jsem problem v klidu
+2) precetl jsem si problem a zapisoval 'definice' [weak/strong street, weak/strong connection,...]
+3) 'definice' jsem zakreslil    (tohle pomohlo memu porozumeni asi nejvic)
+4) vezmu rozebranej example a popisu ho dle meho chapani problemu
+5) pri rozebirani examplu se mi vyjevil algoritmus na reseni:
+        a] get SCC's
+        b] detect Wc's
+        c] DFS for cost and var
+        d] comparison of cost and var of all SCC's
+6) na papir jsem napsal rozhrani funkci
+    nektere funkce jsem popsal detailneji pokud mi nebyla zrejma jejich implementace
+7) pokousel jsem se implementovat tarjana podle pythonu https://stackoverflow.com/questions/46511682/non-recursive-version-of-tarjans-algorithm
+    to se mi nepovedlo vecer, tak jsem rano zkopiroval kosara
+8) kosar je nekde seknutej, nejede na neizolovanych grafech
+
+9) prekopiroval jsem python do PyCharmu a funguje
+10) prekopu pycharm do C ve stejne podobe, potom modifikuju do podoby bez structu
+11) lol, to co jsem naimplementoval vcera actually fungovalo, jenom jsem t
+
+12) projedu tarjana na vsech datech a s valgrindem a memcheckem
+13) tarjan na vsech datech s gcc-complete funguje, jede i memcheck, je tam teda alokovano 12GB ale je to na heapu tzn "free-mem"??
+
+
+
+
+
+
