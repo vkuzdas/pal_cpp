@@ -14,6 +14,12 @@ using namespace std;
 vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M);
 vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N);
 void delete_wcs(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj);
+void count_var_cost(
+        vector<vector<unsigned int>> &comps,
+        vector<vector<unsigned int>> &adj,
+        vector<unsigned int> &var,
+        vector<unsigned int> &cost
+        );
 
 int main() {
     // 1) identify SCC's
@@ -24,12 +30,29 @@ int main() {
 
     vector<vector<unsigned int>> adj = getInput(N, M);
     vector<vector<unsigned int>> comps = tarjan_scc(adj, N);
-    cout << comps.size();
-
     delete_wcs(comps, adj);
+    vector<unsigned int> var(comps.size(),0), cost(comps.size(),0);
+    count_var_cost(comps, adj, var, cost);
 
+    cout << comps.size();
     return 0;
 }
+
+void count_var_cost(
+        vector<vector<unsigned int>> &comps,
+        vector<vector<unsigned int>> &adj,
+        vector<unsigned int> &var,
+        vector<unsigned int> &cost
+               ) {
+    for (unsigned int i = 0; i < comps.size(); ++i) {
+        // var = all nodes that are not UINT_MAX
+        vector<unsigned int> scc = comps[i];
+        unsigned int min_cost =
+        // dfs to all nodes, track only the minimal
+
+    }
+}
+
 
 void delete_wcs(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj) {
     for (unsigned int i = 0; i < comps.size(); ++i) {
