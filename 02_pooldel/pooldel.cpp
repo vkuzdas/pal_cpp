@@ -70,17 +70,17 @@ void delete_wcs(vector<vector<unsigned int>> &comps,
                 unsigned int &max_var) {
     vector<unsigned int> comp_indices;
 
-    for (unsigned int i = 0; i < comps.size(); ++i) { /// for a comp
-        vector<unsigned int> SCC = comps[i];
+    for (unsigned int c = 0; c < comps.size(); ++c) { /// for a COMP
+        vector<unsigned int> SCC = comps[c];
         vector<unsigned int> weak_indices;
-        for (unsigned int j = 0; j < SCC.size(); ++j) { /// for a node within comp
-            unsigned int src = SCC[j];
-            for (unsigned int k = 0; k < adj[src].size(); ++k) { /// for node's dest
-                unsigned int dst = adj[src][k];
+        for (unsigned int n = 0; n < SCC.size(); ++n) { /// for a NODE within comp
+            unsigned int src = SCC[n];
+            for (unsigned int d = 0; d < adj[src].size(); ++d) { /// for node's DEST
+                unsigned int dst = adj[src][d];
                 if(std::find(SCC.begin(), SCC.end(), dst) == SCC.end()) { // FIXME: might be slow
                     // destination of crossing is not within SCC -> should be deleted
-                    printf("Del %d from comp[%d] (%d -> %d)\n", src, i, src, dst);
-                    weak_indices.push_back(j);
+                    printf("Del %d from comp[%d] (%d -> %d)\n", src, c, src, dst);
+                    weak_indices.push_back(n);
                     break;
                 }
             }
@@ -89,16 +89,16 @@ void delete_wcs(vector<vector<unsigned int>> &comps,
             // weak crossing "deletion" (marking is faster)
             SCC[index] = UINT_MAX;
         }
-        comps[i] = SCC;
+        comps[c] = SCC;
         auto comp_size = (unsigned int)(SCC.size() - weak_indices.size());
         if (comp_size > max_var) {
             // found new max -> delete indices of lower var, push index of curr comp
             max_var = comp_size;
             var_indices.clear();
-            var_indices.push_back(i);
+            var_indices.push_back(c);
         } else if (comp_size == max_var) {
             // var is still the same, mark its index
-            var_indices.push_back(i);
+            var_indices.push_back(c);
         }
     }
     if (max_var != 0) max_var = max_var - 1; /// var is the num of nodes that each node can get to in a SCC
