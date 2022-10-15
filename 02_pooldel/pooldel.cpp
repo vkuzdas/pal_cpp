@@ -12,11 +12,9 @@
 using namespace std;
 
 vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M);
-vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N);
-void delete_wcs(vector<vector<unsigned int>> &comps,
-                vector<vector<unsigned int>> &adj,
-                vector<unsigned int> &var_indices,
-                unsigned int &max_var
+vector<unsigned int> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N);
+void delete_wcs(vector<unsigned int> &comp_of,
+                vector<vector<unsigned int>> &adj
                 );
 void get_min_cost(
         vector<vector<unsigned int>> &comps,
@@ -26,6 +24,8 @@ void get_min_cost(
         );
 
 
+void get_max_var(vector<unsigned int> &comp_of, vector<unsigned int> &var_indices,  unsigned int &var,  unsigned int N);
+
 // 1) identify SCC's
 // 2) detect WC's
 // 3) DFS in MAX(var) to get min(cost)
@@ -34,84 +34,99 @@ int main() {
     cin >> N >> M;
 
     vector<vector<unsigned int>> adj = getInput(N, M);
-    vector<vector<unsigned int>> comps = tarjan_scc(adj, N);
+    vector<unsigned int> comp_of = tarjan_scc(adj, N);
+    delete_wcs(comp_of, adj);
 
     unsigned int max_var = 0;
     vector<unsigned int> var_indices;
-    delete_wcs(comps, adj, var_indices, max_var);
+    get_max_var(comp_of, var_indices, max_var, N);
 
 
-    vector<unsigned int> cost(comps.size(),0);
-    get_min_cost(comps, adj, var_indices, cost);
+//    vector<unsigned int> cost(comp_of.size(), 0);
+//    get_min_cost(comp_of, adj, var_indices, cost);
 
-    cout << "comps size: " << comps.size() << "\n";
+    cout << "comp_of size: " << comp_of.size() << "\n";
     cout << "var: " << max_var << "\n";
     return 0;
+}
+
+
+/**
+ * comp_of obsahuje uzle a jejich komponenty
+ * Pokud je uzel weak crossing, ma komponentu rovnou UINT_MAX
+ *
+ * Chceme zjistit nejvetsi var ze vsech komponent
+ */
+void get_max_var(vector<unsigned int> &comp_of, vector<unsigned int> &var_indices, unsigned int &var, unsigned int N) {
+
+    /// POCITAS TO SPATNE!!!
+    // todo: udelej si pocet u kazde komponenty
+    vector<unsigned int> var_of_comps(N, 0); // TODO: asi prilis velke
+    for (unsigned int curr = 0; curr < comp_of.size(); ++curr) {
+        // pro kazdy uzel, zjisti komponentu, jeji vyskyt eviduj na indexu komponenty ve var_of_comps
+        if(comp_of[curr] == UINT_MAX) continue;
+        var_of_comps[comp_of[curr]] += 1;
+    }
+
+    var = 0; var_indices.clear();
+    for (unsigned int i = 0; i < var_of_comps.size(); ++i) {
+        if (var_of_comps[i] > var) {
+            // novy max -> odstran predchozi, zaznamenej pozici, updatni max
+            var_indices.clear();
+            var_indices.push_back(i);
+            var = var_of_comps[i]; // FIXME
+        } else if (var_of_comps[i] == var) {
+            // stejny max -> zaznamenej pozici
+            var_indices.push_back(i);
+        }
+    }
+    // spocitali jsme vsechny uzle, var je ve skutecnosti pocet uzlu do kterych se dostanes z jednoho uzlu
+    var -= 1;
 }
 
 
 //1c1,2
 //< 2 94 3165
 //---
-//> comps size: 5
+//> comp_of size: 5
 //> var: 118        should be 94!
 /// pub07 actin' weird
 
 /**
- * There are nodes that have an edge going out from SCC these edges are "weak crossings".
- * We mark them by replacing their node ID with UINT_MAX.
- *
- * For efficiency purposes we also find the maximum size of SCC without weak crossings (@param max_var).
- * Moreover, the position of these SCCs is marked within @param var_indices.
+ * Chceme smazat uzly ktere vedou pryc z komponenty
+ * Oznaceni uzlu je rychlejsi nez mazani
  */
-void delete_wcs(vector<vector<unsigned int>> &comps,
-                vector<vector<unsigned int>> &adj,
-                vector<unsigned int> &var_indices,
-                unsigned int &max_var) {
+void delete_wcs(vector<unsigned int> &comp_of,
+                vector<vector<unsigned int>> &adj) {
     vector<unsigned int> comp_indices;
+    vector<unsigned int> var_of_comp;
+    vector<unsigned int> tbd;
 
-    for (unsigned int c = 0; c < comps.size(); ++c) { /// for a COMP
-        vector<unsigned int> SCC = comps[c];
-        vector<unsigned int> weak_indices;
-        for (unsigned int n = 0; n < SCC.size(); ++n) { /// for a NODE within comp
-            unsigned int src = SCC[n];
-            for (unsigned int d = 0; d < adj[src].size(); ++d) { /// for node's DEST
-                unsigned int dst = adj[src][d];
-                if(std::find(SCC.begin(), SCC.end(), dst) == SCC.end()) { // FIXME: might be slow
-                    // destination of crossing is not within SCC -> should be deleted
-                    printf("Del %d from comp[%d] (%d -> %d)\n", src, c, src, dst);
-                    weak_indices.push_back(n);
-                    break;
-                }
+    for (unsigned int src = 0; src < comp_of.size(); ++src) {
+        for (unsigned int d = 0; d < adj[src].size(); ++d) {
+            auto dst = adj[src][d];
+            if(comp_of[dst] != comp_of[src]) {
+
+            }
+            if (comp_of[dst] != comp_of[src]) {
+                tbd.push_back(src);
             }
         }
-        for (unsigned int index : weak_indices) {
-            // weak crossing "deletion" (marking is faster)
-            SCC[index] = UINT_MAX;
-        }
-        comps[c] = SCC;
-        auto comp_size = (unsigned int)(SCC.size() - weak_indices.size());
-        if (comp_size > max_var) {
-            // found new max -> delete indices of lower var, push index of curr comp
-            max_var = comp_size;
-            var_indices.clear();
-            var_indices.push_back(c);
-        } else if (comp_size == max_var) {
-            // var is still the same, mark its index
-            var_indices.push_back(c);
-        }
     }
-    if (max_var != 0) max_var = max_var - 1; /// var is the num of nodes that each node can get to in a SCC
+    for (auto index : tbd) {
+        comp_of[index] = UINT_MAX;
+    }
 }
 
 // TODO: docs
-vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N) { // consider const
+vector<unsigned int> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N) { // consider const
     const unsigned int UNDEF = UINT_MAX;
     vector<unsigned int> index(N, UNDEF); // order of node in which it was visited
     vector<unsigned int> lowlink(N, UNDEF);
     vector<bool> on_stack(N, false);
     stack<unsigned int> stck;
-    vector<vector<unsigned int>> comps;
+    vector<unsigned int> comp_of(N, UINT_MAX);
+    unsigned int comp_num = 0;
     stack<pair<unsigned int, unsigned int>> call_stack; // recursion argument stack
     unsigned int i = 0;
 
@@ -152,21 +167,20 @@ vector<vector<unsigned int>> tarjan_scc(vector<vector<unsigned int>> &adj, unsig
             }
             // vertex is root of SCC
             if (lowlink[node] == index[node]) {
-                vector<unsigned int> scc;
                 while (true) {
                     auto next = stck.top();
                     stck.pop();
                     on_stack[next] = false;
-                    scc.push_back(next);
+                    comp_of[next] = comp_num;
                     if (next == node) {
+                        comp_num++;
                         break;
                     }
                 }
-                comps.push_back(scc);
             }
         }
     }
-    return comps;
+    return comp_of;
 }
 
 vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M) {
