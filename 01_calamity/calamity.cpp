@@ -141,6 +141,8 @@ vector<int> assign_districts(vector<vector<pair<int, int>>> &adj, int D) {
     vector<int> districts(adj.size());
     vector<int> traversals(adj.size());
     queue<int> q;
+    // add all districts to the queue
+    // lowest city is guaranteed to get to the closest first
     for (int i = 1; i <= D; ++i) {
         traversals[i] = 0;
         districts[i] = i;

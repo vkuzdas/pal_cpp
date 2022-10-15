@@ -23,6 +23,9 @@
 14) implementace delete WC's
 
 
+VELKA CHYBA: nemohl jsem se rozhodnout ktery pristup udelam a ani jsem ho prilis neanalyzoval
+
+
 
 
 

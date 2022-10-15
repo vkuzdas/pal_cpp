@@ -7,78 +7,57 @@
 #include <vector>
 #include <algorithm>
 #include <stack>
+#include <queue>
 #include <climits>
 
 using namespace std;
 
-vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M);
-vector<unsigned int> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N);
-void delete_wcs(vector<unsigned int> &comp_of,
-                vector<vector<unsigned int>> &adj
-                );
-void get_min_cost(
-        vector<vector<unsigned int>> &comps,
-        vector<vector<unsigned int>> &adj,
-        vector<unsigned int> &var,
-        vector<unsigned int> &cost
-        );
 
-
-void get_max_var(vector<unsigned int> &comp_of, vector<unsigned int> &var_indices,  unsigned int &var,  unsigned int N);
-
-// 1) identify SCC's
-// 2) detect WC's
-// 3) DFS in MAX(var) to get min(cost)
-int main() {
-    unsigned int N, M;
-    cin >> N >> M;
-
-    vector<vector<unsigned int>> adj = getInput(N, M);
-    vector<unsigned int> comp_of = tarjan_scc(adj, N);
-    delete_wcs(comp_of, adj);
-
-    unsigned int max_var = 0;
-    vector<unsigned int> var_indices;
-    get_max_var(comp_of, var_indices, max_var, N);
-
-
-//    vector<unsigned int> cost(comp_of.size(), 0);
-//    get_min_cost(comp_of, adj, var_indices, cost);
-
-    cout << "comp_of size: " << comp_of.size() << "\n";
-    cout << "var: " << max_var << "\n";
-    return 0;
-}
+struct Triple {
+    int node;
+    int var;
+    int cost;
+};
 
 
 /**
- * comp_of obsahuje uzle a jejich komponenty
- * Pokud je uzel weak crossing, ma komponentu rovnou UINT_MAX
+ * BFS inside SCC's
+ * Get {node, var, cost} combinations
+ * Per SCC: do N*BFS(node), fill destination matrix, count cost and var to each other node
  *
- * Chceme zjistit nejvetsi var ze vsech komponent
+ * @param comps list of components  {c1 -> {v1,v2..}}, deleted nodes have id UINT_MAX
  */
-void get_max_var(vector<unsigned int> &comp_of, vector<unsigned int> &var_indices, unsigned int &var, unsigned int N) {
-    vector<unsigned int> var_of_comps(N, 0); // TODO: asi prilis velke
-    for (unsigned int curr = 0; curr < comp_of.size(); ++curr) {
-        // pro kazdy uzel, zjisti komponentu, jeji vyskyt eviduj na indexu komponenty ve var_of_comps
-        if(comp_of[curr] == UINT_MAX) continue;
-        var_of_comps[comp_of[curr]] += 1;
-    }
+vector<Triple> get_nvc(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj) {
 
-    var = 0; var_indices.clear();
-    for (unsigned int i = 0; i < var_of_comps.size(); ++i) {
-        if (var_of_comps[i] > var) {
-            // novy max -> odstran predchozi, zaznamenej pozici, updatni max
-            var_indices.clear();
-            var_indices.push_back(i);
-            var = var_of_comps[i]; // FIXME
-        } else if (var_of_comps[i] == var) {
-            // stejny max -> zaznamenej pozici
-            var_indices.push_back(i);
+    vector<Triple> nvc; // {node, var, cost}
+    vector<unsigned int> row(adj.size(), UINT_MAX); // infinite distance
+    vector<vector<unsigned int>> dist_matrix(adj.size(), row);
+
+    for (unsigned int scc = 0; scc < comps.size(); ++scc) { // per SCC
+
+        /// presumtion: all comp nodes are connected
+        queue<unsigned int> q;
+        // add first non-marked node
+        for (auto n : comps[scc]) {
+            if(n == UINT_MAX) continue;
+            q.push(n); break;
+        }
+        // for each node in SCC
+        while (!q.empty()) {
+            unsigned int bfs_wave = 1;
+            auto curr = q.front(); q.pop();
+            for (unsigned int n = 0; n < adj[curr].size(); ++n) {
+                auto nei = adj[curr][n];
+//                if ()
+                if (nei == UINT_MAX) continue;
+                dist_matrix[n][nei] = bfs_wave;
+
+
+
+            }
         }
     }
-    // spocitali jsme vsechny uzle, var je ve skutecnosti pocet uzlu do kterych se dostanes z jednoho uzlu
-    var -= 1;
+    return nvc;
 }
 
 /**
@@ -105,6 +84,96 @@ void delete_wcs(vector<unsigned int> &comp_of,
     for (auto index : tbd) {
         comp_of[index] = UINT_MAX;
     }
+}
+
+void delete_wcs_adj(vector<vector<unsigned int>> &comps, vector<unsigned int> &comp_of, vector<vector<unsigned int>> &adj) {
+    for (unsigned int c = 0; c < comps.size(); ++c) { // for comp
+        vector<unsigned int> scc = comps[c];
+        vector<unsigned int> index_to_delete;
+        for (unsigned int s = 0; s < scc.size(); ++s) { // for src in comp
+            unsigned int src = scc[s];
+            for (unsigned int d = 0; d < adj[src].size(); ++d) { // if src destination
+                unsigned int dst = adj[src][d];
+                if(std::find(scc.begin(), scc.end(), dst) == scc.end()) { // not in component TODO slow
+                    index_to_delete.push_back(s);
+                    comp_of[dst] = UINT_MAX;
+                }
+            }
+        }
+        for (unsigned int index : index_to_delete) {
+            scc[index] = UINT_MAX;
+        }
+        comps[c] = scc;
+    }
+}
+
+
+vector<vector<unsigned int>> tarjan_scc_adj(vector<vector<unsigned int>> &adj, vector<unsigned int> &comp_of, unsigned int N) { // consider const
+    const unsigned int UNDEF = UINT_MAX;
+    vector<unsigned int> index(N, UNDEF);
+    vector<unsigned int> lowlink(N, UNDEF);
+    vector<bool> on_stack(N, false);
+    stack<unsigned int> stck;
+    vector<vector<unsigned int>> comps;
+    unsigned int comp_num = 0;
+    stack<pair<unsigned int, unsigned int>> call_stack; // recursion argument stack
+    vector<unsigned int> scc_of(N, UNDEF);
+    unsigned int i = 0;
+
+    for (unsigned int v = 0; v < N; ++v) {
+        if (index[v] != UNDEF) continue;
+        call_stack.push({v, 0});
+        while (!call_stack.empty()) {
+            v = call_stack.top().first;
+            unsigned int pi = call_stack.top().second;
+            call_stack.pop();
+            // uzel nenavstiven
+            if (pi == 0) {
+                index[v] = i;
+                lowlink[v] = i;
+                i++;
+                stck.push(v);
+                on_stack[v] = true;
+            }
+            // "recursed" on something
+            if (pi > 0) {
+                unsigned int prev = adj[v][pi - 1];
+                lowlink[v] = min(lowlink[v], lowlink[prev]);
+            }
+            // recurse on
+            while (pi < adj[v].size() && index[adj[v][pi]] != UNDEF) {
+                unsigned int next = adj[v][pi];
+                if (on_stack[next]) {
+                    lowlink[v] = min(lowlink[v], index[next]);
+                }
+                pi++;
+            }
+            // found vert without index
+            if (pi < adj[v].size()) {
+                unsigned int next = adj[v][pi];
+                call_stack.push({v, pi + 1});
+                call_stack.push({next, 0});
+                continue;
+            }
+            // vertex is root of SCC
+            if (lowlink[v] == index[v]) {
+                vector<unsigned int> scc;
+                while (true) {
+                    auto next = stck.top();
+                    stck.pop();
+                    on_stack[next] = false;
+                    scc.push_back(next);
+                    comp_of[next] = comp_num;
+                    if (next == v) {
+                        comp_num++;
+                        break;
+                    }
+                }
+                comps.push_back(scc);
+            }
+        }
+    }
+    return comps;
 }
 
 /**
@@ -213,7 +282,6 @@ vector<unsigned int> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int 
                     }
                 }
             }
-
         }
     }
     return comp_of;
@@ -228,4 +296,27 @@ vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M) {
         adj[src].push_back(dest);
     }
     return adj;
+}
+
+
+
+
+
+int main() {
+    unsigned int N, M;
+    cin >> N >> M;
+
+    vector<vector<unsigned int>> adj = getInput(N, M);
+    vector<unsigned int> comp_of(N, UINT_MAX);
+    vector<vector<unsigned int>> comps = tarjan_scc_adj(adj, comp_of, N);
+    delete_wcs_adj(comps, comp_of, adj);
+
+    unsigned int max_var = 0;
+    vector<unsigned int> var_indices;
+
+
+
+    cout << "comp_of size: " << comps.size() << "\n";
+    cout << "var: " << max_var << "\n";
+    return 0;
 }
