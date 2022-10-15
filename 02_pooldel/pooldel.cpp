@@ -58,9 +58,6 @@ int main() {
  * Chceme zjistit nejvetsi var ze vsech komponent
  */
 void get_max_var(vector<unsigned int> &comp_of, vector<unsigned int> &var_indices, unsigned int &var, unsigned int N) {
-
-    /// POCITAS TO SPATNE!!!
-    // todo: udelej si pocet u kazde komponenty
     vector<unsigned int> var_of_comps(N, 0); // TODO: asi prilis velke
     for (unsigned int curr = 0; curr < comp_of.size(); ++curr) {
         // pro kazdy uzel, zjisti komponentu, jeji vyskyt eviduj na indexu komponenty ve var_of_comps
@@ -83,14 +80,6 @@ void get_max_var(vector<unsigned int> &comp_of, vector<unsigned int> &var_indice
     // spocitali jsme vsechny uzle, var je ve skutecnosti pocet uzlu do kterych se dostanes z jednoho uzlu
     var -= 1;
 }
-
-
-//1c1,2
-//< 2 94 3165
-//---
-//> comp_of size: 5
-//> var: 118        should be 94!
-/// pub07 actin' weird
 
 /**
  * Chceme smazat uzly ktere vedou pryc z komponenty
@@ -118,66 +107,113 @@ void delete_wcs(vector<unsigned int> &comp_of,
     }
 }
 
-// TODO: docs
-vector<unsigned int> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N) { // consider const
+/**
+ * The source code closely follows the one on wikipedia except it implements its own Stack mem allocation on heap
+ * https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+index := 0
+S := empty stack
+for each v in V do
+    if v.index is undefined then
+        strongconnect(v)
+function strongconnect(v)
+    v.index := index
+    v.lowlink := index
+    index := index + 1
+    S.push(v)
+    v.onStack := true
+    for each (v, w) in E do
+        if w.index is undefined then
+            strongconnect(w)
+            v.lowlink := min(v.lowlink, w.lowlink)
+        else if w.onStack then
+            v.lowlink := min(v.lowlink, w.index)
+    if v.lowlink = v.index then
+        start a new SCC
+        repeat
+            w := S.pop()
+            w.onStack := false
+            add w to current SCC
+        while w ≠ v
+        output the current SCC
+ */
+vector<unsigned int> tarjan_scc(vector<vector<unsigned int>> &adj, unsigned int N) {
+    unsigned int CURR_UNVISITED = 0;
     const unsigned int UNDEF = UINT_MAX;
-    vector<unsigned int> index(N, UNDEF); // order of node in which it was visited
+    vector<unsigned int> index_arr(N, UNDEF); // order of node in which it was visited
     vector<unsigned int> lowlink(N, UNDEF);
     vector<bool> on_stack(N, false);
-    stack<unsigned int> stck;
+    stack<unsigned int> S;
     vector<unsigned int> comp_of(N, UINT_MAX);
     unsigned int comp_num = 0;
-    stack<pair<unsigned int, unsigned int>> call_stack; // recursion argument stack
-    unsigned int i = 0;
+    stack<pair<unsigned int, unsigned int>> CALL_S; // recursion argument stack
+    unsigned int index = 0;
 
-    for (unsigned int node = 0; node < N; ++node) {
-        if (index[node] != UNDEF) continue;
-        call_stack.push({node, 0});
-        while (!call_stack.empty()) {
-            node = call_stack.top().first;
-            unsigned int ptr = call_stack.top().second;
-            call_stack.pop();
-            // uzel nenavstiven
-            if (ptr == 0) {
-                index[node] = i;
-                lowlink[node] = i;
-                i++;
-                stck.push(node);
-                on_stack[node] = true;
+    /// for each v in V
+    for (unsigned int v = 0; v < N; ++v) {
+        if (index_arr[v] != UNDEF) continue;
+        CALL_S.push({v, CURR_UNVISITED});
+
+        while (!CALL_S.empty()) {
+            v = CALL_S.top().first;
+            auto act = CALL_S.top().second;
+            CALL_S.pop();
+
+            // Pokud v vidíme poprvé
+            if (act == CURR_UNVISITED) {
+                // Set the depth index for v to the smallest unused index
+                index_arr[v] = index;
+                lowlink[v] = index;
+                index++;
+                S.push(v);
+                on_stack[v] = true;
             }
-            // "recursed" on something
-            if (ptr > 0) {
-                unsigned int prev = adj[node][ptr - 1];
-                lowlink[node] = min(lowlink[node], lowlink[prev]);
+
+            /// Consider successors of v
+            unsigned int w;
+
+            // Pokud jsme zrovna na něco vyrekurzovali (uzel ktery jsme si nechali na "potom"
+            // Vracime se v DFS zpet a updatujeme lowlinky predchozim uzlum
+            if (act > 0) {
+                // Successor w has not yet been visited; recurse on it
+                // strongconnect(w)    <- point of recursion  call
+                w = adj[v][act - 1];
+                lowlink[v] = min(lowlink[v], lowlink[w]);
             }
-            // recurse on
-            while (ptr < adj[node].size() && index[adj[node][ptr]] != UNDEF) {
-                unsigned int next = adj[node][ptr];
-                if (on_stack[next]) {
-                    lowlink[node] = min(lowlink[node], index[next]);
+
+            // Najdeme další věc na kterou rekurzovat
+            // V DFS stromu se vracime jeste dale, zde nas zajima zda i INDEX predchoziho neni nizsi nez LL curr uzlu
+            while (act < adj[v].size() && index_arr[adj[v][act]] != UNDEF) {
+                w = adj[v][act];
+                if (on_stack[w]) {
+                    // Successor w is in stack S and hence in the current SCC
+                    // If w is not on stack, then (v, w) is an edge pointing to an SCC already found and must be ignored
+                    lowlink[v] = min(lowlink[v], index_arr[w]);
                 }
-                ptr++;
+                act++;
             }
-            // found vert without index
-            if (ptr < adj[node].size()) {
-                unsigned int next = adj[node][ptr];
-                call_stack.push({node, ptr + 1});
-                call_stack.push({next, 0});
+
+            // Pokud jsme našli něco co nemá index
+            if (act < adj[v].size()) {
+                w = adj[v][act];
+                CALL_S.push({v, act + 1});          // Uzel nechavame na "potom" v call stacku
+                CALL_S.push({w, CURR_UNVISITED});   // CALL
                 continue;
             }
-            // vertex is root of SCC
-            if (lowlink[node] == index[node]) {
+
+            // If v is a root node, pop the stack and generate an SCC
+            if (lowlink[v] == index_arr[v]) {
                 while (true) {
-                    auto next = stck.top();
-                    stck.pop();
-                    on_stack[next] = false;
-                    comp_of[next] = comp_num;
-                    if (next == node) {
+                    w = S.top();
+                    S.pop();
+                    on_stack[w] = false;
+                    comp_of[w] = comp_num;
+                    if (w == v) {
                         comp_num++;
                         break;
                     }
                 }
             }
+
         }
     }
     return comp_of;
