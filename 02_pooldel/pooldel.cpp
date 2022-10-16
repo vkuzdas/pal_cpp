@@ -14,10 +14,11 @@ using namespace std;
 
 
 struct Triple {
-    int node;
-    int var;
-    int cost;
+    unsigned int node;
+    unsigned int var;
+    unsigned int cost;
 };
+
 
 
 /**
@@ -27,8 +28,7 @@ struct Triple {
  *
  * @param comps list of components  {c1 -> {v1,v2..}}, deleted nodes have id UINT_MAX
  */
-vector<vector<unsigned int>> get_nvc(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj, vector<unsigned int> &comp_of) {
-    vector<Triple> nvc;
+vector<vector<unsigned int>> get_dist_matrix(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj, vector<unsigned int> &comp_of) {
     vector<unsigned int> row(adj.size(), 0); // infinite distance
     vector<vector<unsigned int>> dist_matrix(adj.size(), row); // TODO: arr of pair {dist,cost}
 
@@ -54,11 +54,10 @@ vector<vector<unsigned int>> get_nvc(vector<vector<unsigned int>> &comps, vector
                     q.push(nei);
                     seen[curr] = true;
                 }
-                bfs_wave++; // inkrementovat ne pri kazdem dalsim uzlu ale pri dalsi vlne // idea: pamatovat ze ktereho vedou
+                bfs_wave++; // inkrementovat ne pri kazdem dalsim uzlu ale pri dalsi vlne
             }
         }
     }
-
     return dist_matrix;
 }
 
@@ -66,8 +65,7 @@ vector<vector<unsigned int>> get_nvc(vector<vector<unsigned int>> &comps, vector
  * Chceme smazat uzly ktere vedou pryc z komponenty
  * Oznaceni uzlu je rychlejsi nez mazani
  */
-void delete_wcs(vector<unsigned int> &comp_of,
-                vector<vector<unsigned int>> &adj) {
+void delete_wcs(vector<unsigned int> &comp_of, vector<vector<unsigned int>> &adj) {
     vector<unsigned int> comp_indices;
     vector<unsigned int> var_of_comp;
     vector<unsigned int> tbd;
@@ -109,7 +107,6 @@ void delete_wcs_adj(vector<vector<unsigned int>> &comps, vector<unsigned int> &c
         comps[c] = scc;
     }
 }
-
 
 vector<vector<unsigned int>> tarjan_scc_adj(vector<vector<unsigned int>> &adj, vector<unsigned int> &comp_of, unsigned int N) { // consider const
     const unsigned int UNDEF = UINT_MAX;
@@ -301,7 +298,57 @@ vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M) {
     return adj;
 }
 
+vector<Triple> get_nvc(vector<vector<unsigned int>> &dist_matrix, vector<vector<unsigned int>> &comps) {
+    // pro kazdy uzel v scc spocitej var a cost z dist matrix
+    vector<Triple> nvc;
+    for (unsigned int scc_i = 0; scc_i < comps.size(); ++scc_i) {
+        auto SCC = comps[scc_i];
+        for (unsigned int s = 0; s < SCC.size(); ++s) {
+            if (SCC[s]==UINT_MAX) continue;
+            auto src = SCC[s];
+            unsigned int cost_sum = 0;
+            unsigned int var = 0;
+            for (unsigned int d = 0; d < SCC.size(); ++d) {
+                if (SCC[d] == UINT_MAX) continue;
+                if (s==d) continue;
+                auto dst = SCC[d];
+                auto loaded_cost = dist_matrix[src][dst];
+                auto unloaded_cost = dist_matrix[dst][src];
+                if (loaded_cost == 0 || unloaded_cost == 0) continue;
+                cost_sum += 2*loaded_cost + unloaded_cost;
+                var++;
+            }
+            nvc.push_back({src, var, cost_sum});
+        }
+    }
+    return nvc;
+}
 
+void print_result(vector<Triple> &nvc) {
+    unsigned int max_var = 0;
+    for (unsigned int i = 0; i < nvc.size(); ++i) {
+        // find max from all
+        if (nvc[i].var > max_var) max_var = nvc[i].var;
+    }
+    unsigned int min_cost = UINT_MAX;
+    unsigned int count = 0;
+    for (unsigned int i = 0; i < nvc.size(); ++i) {
+        // find min, check only those that have max_var
+        auto n = nvc[i].node;
+        auto v = nvc[i].var;
+        auto c = nvc[i].cost;
+        if (v != max_var) continue;
+        if(c < min_cost) {
+            // found new min
+            min_cost = c;
+            count = 1;
+        }
+        else if (nvc[i].cost == min_cost) {
+            count ++;
+        }
+    }
+    printf("%d %d %d\n", count, max_var, min_cost);
+}
 
 int main() {
     unsigned int N, M;
@@ -312,9 +359,12 @@ int main() {
     vector<vector<unsigned int>> comps = tarjan_scc_adj(adj, comp_of, N);
     delete_wcs_adj(comps, comp_of, adj);
 
-    vector<vector<unsigned int>> dist_matrix = get_nvc(comps, adj, comp_of);
+    vector<vector<unsigned int>> dist_matrix = get_dist_matrix(comps, adj, comp_of);
+    vector<Triple> nvc = get_nvc(dist_matrix, comps);
 
+    print_result(nvc);
 //    cout << "comp_of size: " << comps.size() << "\n";
 //    cout << "var: " << max_var << "\n";
     return 0;
 }
+
