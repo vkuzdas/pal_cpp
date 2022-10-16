@@ -40,8 +40,6 @@ vector<vector<unsigned int>> get_dist_matrix(vector<vector<unsigned int>> &comps
             if(startV == UINT_MAX) continue;
             q.push(startV);
 
-            // for each node in SCC
-            unsigned int bfs_wave = 1; // wrong bfs make it traversal list just as with calamity
             while (!q.empty()) {
                 auto curr = q.front(); q.pop();
                 for (unsigned int n = 0; n < adj[curr].size(); ++n) {
@@ -49,12 +47,12 @@ vector<vector<unsigned int>> get_dist_matrix(vector<vector<unsigned int>> &comps
                     if (nei == UINT_MAX) continue;      // chceme neoznacene uzly
                     if (comp_of[nei] != scc) continue;  // uvnitr SCC
                     if (seen[nei]) continue;            // ktere jsme jeste nevideli
-                    if (dist_matrix[startV][nei] != 0) continue; // dist jsme uz pridali
-                    dist_matrix[startV][nei] = bfs_wave;
+                    if (dist_matrix[startV][nei] != 0) continue; // dist jsme uz pridali    TODO: mozna spatne, chci tam dat ten nejnizsi -> ten co tam prijde prvni
+                    auto dist_to_curr = dist_matrix[startV][curr];
+                    dist_matrix[startV][nei] = dist_to_curr + 1;
                     q.push(nei);
                     seen[curr] = true;
                 }
-                bfs_wave++; // inkrementovat ne pri kazdem dalsim uzlu ale pri dalsi vlne
             }
         }
     }
@@ -347,7 +345,7 @@ void print_result(vector<Triple> &nvc) {
             count ++;
         }
     }
-    printf("%d %d %d\n", count, max_var, min_cost);
+    printf("%d %d %d", count, max_var, min_cost);
 }
 
 int main() {
