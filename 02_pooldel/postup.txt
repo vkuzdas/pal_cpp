@@ -26,6 +26,9 @@
 VELKA CHYBA: nemohl jsem se rozhodnout ktery pristup udelam a ani jsem ho prilis neanalyzoval
 
 
+Myslim si ze algo kazde funkce by sis mel nakreslit a vyzkouset na grafu ze zadani
+
+
 
 
 

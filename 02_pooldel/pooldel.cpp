@@ -27,37 +27,39 @@ struct Triple {
  *
  * @param comps list of components  {c1 -> {v1,v2..}}, deleted nodes have id UINT_MAX
  */
-vector<Triple> get_nvc(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj) {
-
-    vector<Triple> nvc; // {node, var, cost}
-    vector<unsigned int> row(adj.size(), UINT_MAX); // infinite distance
-    vector<vector<unsigned int>> dist_matrix(adj.size(), row);
+vector<vector<unsigned int>> get_nvc(vector<vector<unsigned int>> &comps, vector<vector<unsigned int>> &adj, vector<unsigned int> &comp_of) {
+    vector<Triple> nvc;
+    vector<unsigned int> row(adj.size(), 0); // infinite distance
+    vector<vector<unsigned int>> dist_matrix(adj.size(), row); // TODO: arr of pair {dist,cost}
 
     for (unsigned int scc = 0; scc < comps.size(); ++scc) { // per SCC
 
-        /// presumtion: all comp nodes are connected
-        queue<unsigned int> q;
-        // add first non-marked node
-        for (auto n : comps[scc]) {
-            if(n == UINT_MAX) continue;
-            q.push(n); break;
-        }
-        // for each node in SCC
-        while (!q.empty()) {
-            unsigned int bfs_wave = 1;
-            auto curr = q.front(); q.pop();
-            for (unsigned int n = 0; n < adj[curr].size(); ++n) {
-                auto nei = adj[curr][n];
-//                if ()
-                if (nei == UINT_MAX) continue;
-                dist_matrix[n][nei] = bfs_wave;
+        for (auto startV : comps[scc]) {
+            vector<bool> seen(adj.size(), false);
+            queue<unsigned int> q;
+            if(startV == UINT_MAX) continue;
+            q.push(startV);
 
-
-
+            // for each node in SCC
+            unsigned int bfs_wave = 1; // wrong bfs make it traversal list just as with calamity
+            while (!q.empty()) {
+                auto curr = q.front(); q.pop();
+                for (unsigned int n = 0; n < adj[curr].size(); ++n) {
+                    auto nei = adj[curr][n];
+                    if (nei == UINT_MAX) continue;      // chceme neoznacene uzly
+                    if (comp_of[nei] != scc) continue;  // uvnitr SCC
+                    if (seen[nei]) continue;            // ktere jsme jeste nevideli
+                    if (dist_matrix[startV][nei] != 0) continue; // dist jsme uz pridali
+                    dist_matrix[startV][nei] = bfs_wave;
+                    q.push(nei);
+                    seen[curr] = true;
+                }
+                bfs_wave++; // inkrementovat ne pri kazdem dalsim uzlu ale pri dalsi vlne // idea: pamatovat ze ktereho vedou
             }
         }
     }
-    return nvc;
+
+    return dist_matrix;
 }
 
 /**
@@ -87,6 +89,7 @@ void delete_wcs(vector<unsigned int> &comp_of,
 }
 
 void delete_wcs_adj(vector<vector<unsigned int>> &comps, vector<unsigned int> &comp_of, vector<vector<unsigned int>> &adj) {
+    // delete weak streets
     for (unsigned int c = 0; c < comps.size(); ++c) { // for comp
         vector<unsigned int> scc = comps[c];
         vector<unsigned int> index_to_delete;
@@ -96,7 +99,7 @@ void delete_wcs_adj(vector<vector<unsigned int>> &comps, vector<unsigned int> &c
                 unsigned int dst = adj[src][d];
                 if(std::find(scc.begin(), scc.end(), dst) == scc.end()) { // not in component TODO slow
                     index_to_delete.push_back(s);
-                    comp_of[dst] = UINT_MAX;
+                    comp_of[src] = UINT_MAX;
                 }
             }
         }
@@ -300,8 +303,6 @@ vector<vector<unsigned int>> getInput(unsigned int N, unsigned int M) {
 
 
 
-
-
 int main() {
     unsigned int N, M;
     cin >> N >> M;
@@ -311,12 +312,9 @@ int main() {
     vector<vector<unsigned int>> comps = tarjan_scc_adj(adj, comp_of, N);
     delete_wcs_adj(comps, comp_of, adj);
 
-    unsigned int max_var = 0;
-    vector<unsigned int> var_indices;
+    vector<vector<unsigned int>> dist_matrix = get_nvc(comps, adj, comp_of);
 
-
-
-    cout << "comp_of size: " << comps.size() << "\n";
-    cout << "var: " << max_var << "\n";
+//    cout << "comp_of size: " << comps.size() << "\n";
+//    cout << "var: " << max_var << "\n";
     return 0;
 }
