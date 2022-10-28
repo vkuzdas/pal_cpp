@@ -1,0 +1,33 @@
+Sam jsem prisel na jeden algo kterej to asi resi
+Nevim ale jestli neni pomalej
+(ukazalo se ze byl spatne protoze jsem si spatne precetl zadani
+
+Rimma to udelala takhle:
+1. Count the number of servers in the old graph. = k
+2. In the new graph generate all possible k-subsets. In each k-subset remove connections
+that lead to servers, that are not in the current subset. Only after that check the for the isomorphism with
+old graph.
+3. From the filtered subsets from 2. choose those that contain max number of fast servers.
+4. From filtered subsets from 3. choose those having min delay (sum of edges).
+5. Output number of faster servers, min delay
+
+Rasto:
+generovat permutacie vrcholov novej siete a pre kazdy pozriet:
+1) ci je permutacia connected (ja som to robil cez bfs a v tom behu som si ulozil node degrees aj spocital totalCost siete)
+2) ulozit si degree kazdeho vrcholu
+3) porovnat ci sa sorted degrees vrcholov permutacie rovnaju sorted degrees vrcholom starej siete
+4) ulozit ako mozne riesenie
+5) vybrat minimalny cost z moznych rieseni
+
+===========
+
+TAK JO!
+už mám algoritmus
+přišel jsem na něj až po navštívení dalšího cvika a podrobnějším shlédnutí přednášky
+
+tentokrat jsem postupoval pri navrhovani zevrubneji
+napsal jsem kazdou funkci vcetne jejiho rozhrani a uvnitr ni priblizny pseudokod
+az teda na tu posledni ktera je nejvice komplexni
+
+jdu implementovat
+
