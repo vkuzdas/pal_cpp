@@ -5,18 +5,41 @@
 
 #include <iostream>
 #include <vector>
-#include <map>
-#include "../00_library/library.h"
-
 
 using namespace std;
+using wd_pair = pair<unsigned int, unsigned int>;
 
-void get_fast_servers(unsigned int f, vector<bool> &f2s_bool, vector<unsigned int> &f2s_vec) {
+vector<vector<unsigned int>> get_old_net(unsigned int n, unsigned int m) {
+    // reads graph from input and represents it as mirrored directed graph in adj list
+    vector<vector<unsigned int>> adj(n);
+    for (unsigned int i = 0; i < m; ++i) {
+        unsigned int src, dest;
+        cin >> src >> dest;
+        adj[src].push_back(dest);
+        adj[dest].push_back(src);
+    }
+    return adj;
+}
+
+vector<vector<wd_pair>> get_new_net(unsigned int vert_count, unsigned int edge_count) {
+    // reads graph from input and represents it as mirrored directed graph in adj list
+    vector<vector<wd_pair>> adj(vert_count);
+    for (unsigned int i = 0; i < edge_count; ++i) {
+        unsigned int src, dest, weight;
+        cin >> src >> dest >> weight;
+        adj[src].push_back({weight, dest});
+        adj[dest].push_back({weight, src});
+    }
+    return adj;
+}
+
+
+void get_fast_servers(unsigned int f, vector<bool> &is_fast, vector<unsigned int> &f_servers) {
     for (unsigned int i = 0; i < f; ++i) {
         unsigned int edge_label;
         cin >> edge_label;
-        f2s_bool[edge_label] = true;
-        f2s_vec[i] = edge_label;
+        is_fast[edge_label] = true;
+        f_servers[i] = edge_label;
     }
 }
 
@@ -53,7 +76,12 @@ vector<vector<wd_pair>> remap_new_g(vector<vector<wd_pair>> &new_g, vector<bool>
     return remapped;
 }
 
-
+unsigned int bin_coeff(unsigned int S, unsigned int k) {
+    double res = 1;
+    for (unsigned int i = 1; i <= k; ++i)
+        res = res * (S - k + i) / i;
+    return (unsigned int)(res + 0.01);
+}
 
 
 //Priblizny postup:
@@ -68,19 +96,26 @@ vector<vector<wd_pair>> remap_new_g(vector<vector<wd_pair>> &new_g, vector<bool>
 
 int main() {
     // get old
-    unsigned int old_v, old_e;
-    cin >> old_v >> old_e;
-    vector<vector<unsigned int>> old_g = get_undi_graph_from_input(old_e);
+    unsigned int n1, m1;
+    cin >> n1 >> m1;
+    vector<vector<unsigned int>> old_g = get_old_net(n1, m1);
 
     // get new
-    unsigned int new_v, new_e, f;
-    cin >> new_v >> new_e >> f;
-    vector<bool>fast_s_bool(30); // 1 ≤ F2 ≤ N2, 5 ≤ N2 ≤ 30
-    vector<unsigned int>fast_s_verts(f, false);
-    get_fast_servers(f, fast_s_bool, fast_s_verts);
-    vector<vector<wd_pair>> new_g = get_undi_weighted_graph_from_input(new_v, new_e);
+    unsigned int n2, m2, f;
+    cin >> n2 >> m2 >> f;
+    vector<bool>is_fast(30); // 1 ≤ F2 ≤ N2, 5 ≤ N2 ≤ 30
+    vector<unsigned int>f_servers(f, false);
+    get_fast_servers(f, is_fast, f_servers);
+    vector<vector<wd_pair>> new_g = get_new_net(n2, m2);
 
-    new_g = remap_new_g(new_g, fast_s_bool, fast_s_verts);
+    new_g = remap_new_g(new_g, is_fast, f_servers);
+
+    unsigned int subsets = bin_coeff((unsigned int)new_g.size(), (unsigned int)old_g.size());
+    cout << new_g.size();
+    cout << "\n";
+    cout << old_g.size();
+    cout << "\n";
+    cout << subsets;
 
     return 0;
 }
