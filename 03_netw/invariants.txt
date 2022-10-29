@@ -3,7 +3,6 @@
 (.) Connected - yes/no
 (.) Number of edges
 (.) Bipartite - yes/no
-(.) Regular - yes/no (the degree of all nodes is the same)
 (.) Tree - yes/no
 (.) Planar - yes/no (can be drawn in a plane without edges crossing)
 (.) Number of bridges/cutvertices/blocks
