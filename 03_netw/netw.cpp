@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
+#include <queue>
 
 using namespace std;
 using uint = unsigned int;
@@ -108,20 +110,93 @@ vector<uint> unrank_subset(uint rank, uint n, uint k) {
     return subset_rec;
 }
 
+vector<uint> get_old_degrees_sorted(vector<vector<uint>> &old_g) {
+    vector<uint> old_degrees;
+    for (auto const& src : old_g) {
+        old_degrees.push_back((uint)src.size());
+    }
+    std::sort(old_degrees.begin(), old_degrees.end());
+    return old_degrees;
+}
 
+bool degrees_ok(vector<bool> &in_subset, vector<uint> &curr_subset, vector<vector<wd_pair>> &new_g, vector<vector<uint>> &old_g, vector<uint> &old_degrees_sorted) {
+    // projdi vsechny uzly ze subsetu
+    // koukni jaky degree maji uvnitr new grafu
+    // odecti od degree ty ktere nejsou v subsetu
+    vector<uint> new_degrees;
+    for (uint i = 0; i < curr_subset.size(); ++i) {
+        uint curr_node = curr_subset[i];
+        vector<wd_pair> neighbors = new_g[curr_node];
+        uint degree = 0;
+        for (uint j = 0; j < neighbors.size(); ++j) {
+            uint neigh = neighbors[j].second;
+            if (in_subset[neigh]) {
+                degree++;
+            }
+        }
+        new_degrees.push_back(degree);
+    }
+    std::sort(new_degrees.begin(), new_degrees.end());
+    for (uint i = 0; i < old_degrees_sorted.size(); ++i) {
+        if (old_degrees_sorted[i] != new_degrees[i]) {
+            return false;
+        }
+    }
+    return true;
+}
 
-//bool invariants_ok(vector<uint> &curr_subset, vector<vector<wd_pair>> &new_g, vector<vector<uint>> &old_g) {
-//    // match degrees
-//    // match neighbour degrees
-//    // check for connectivity
-//    // check if it is a tree [connected and n-1 edges]
-//    // check if it is planar
-//    return false;
-//}
-//
+bool is_connected(vector<bool> &in_subset, vector<uint> &curr_subset, vector<vector<wd_pair>> &new_g) {
+    // udelej jedno BFS z nejakeho uzlu v curr_subset
+    // do souseda vejdi jen pokud je v curr_subset
+    queue<uint> q;
+    vector<bool> seen(30, false);
+    q.push(curr_subset[0]); // vloz prvni subset node
+    while (!q.empty()) {
+        uint curr = q.front(); q.pop(); // vyndej node z fronty
+        seen[curr] = true; // node navstiveny jakmile zpracujeme jeho uzly
+        for(wd_pair wd_nei : new_g[curr]) { // koukni na nodovo sousedy
+            uint neighbor = wd_nei.second;
+            if(in_subset[neighbor] && !seen[neighbor]) { // pokud je soused v subsetu, dej ho do fronty
+                q.push(neighbor);
+            }
+        }
+    }
+
+    for (uint i = 0; i < seen.size(); ++i) {
+        bool node_seen = seen[i];
+        bool node_in_subset = in_subset[i];
+        if(node_in_subset) { // nodes in subset should all be visited
+            if(!node_seen) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool invariants_ok(vector<uint> &curr_subset, vector<vector<wd_pair>> &new_g, vector<vector<uint>> &old_g, vector<uint> &old_degrees_sorted) {
+    vector<bool> in_subset(30, false);
+    for (auto node : curr_subset) in_subset[node] = true;
+
+    // check degrees
+    if(!degrees_ok(in_subset, curr_subset, new_g, old_g, old_degrees_sorted)) {
+        cout << "bad degrees. \n";
+        return false;
+    } else {cout << "ok degrees, ";}
+    // check for connectivity
+    if(!is_connected(in_subset, curr_subset, new_g)) {
+        cout << "disconnected.\n";
+        return false;
+    } else {cout << "connected. \n";}
+    // check if it is a tree [connected and n-1 edges]
+    // check if it is planar
+    // match neighbour old_degrees
+    return false;
+}
+
 //bool neighbors_ok(vector<uint> &curr_subset, vector<vector<wd_pair>> &new_g, vector<vector<uint>> &old_g) {
-//    // pravidlo: uzly ktere nesousedili v old nesmi sousedit v new
-//    // tohle se bude checkovat po vygenerovani mappingu
+//     pravidlo: uzly ktere nesousedili v old nesmi sousedit v new
+//     tohle se bude checkovat po vygenerovani mappingu
 //    return false;
 //}
 
@@ -152,16 +227,19 @@ int main() {
     // remapuj aby fast servery byly na prvnich mistech -> generovat budeme nejdrive MAX(F)
     new_g = remap_new_g(new_g, is_fast, f_servers);
 
-    // kombinacni cislo n1 serverove kombinace z n2 serveru [napr 5 serveru z 10]
+    // kombinacni cislo: n1-servrové kombinace z n2 serveru [napr 5 serveru z 10]
     uint last_rank = bin_coeff(n2, n1);
+    vector<uint> old_degrees_sorted = get_old_degrees_sorted(old_g);
     for (uint i = 0; i < last_rank; ++i) { // TODO: teoreticky by se dalo jit z obou koncu (prevratit mapping)
-        vector<uint> v = unrank_subset(i, n2, n1);
-        cout << i << " / " << last_rank << "\n";
+        vector<uint> candidate = unrank_subset(i, n2, n1);
+        for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: linear time!
+
+        cout << i << "th candidate:  [";
+        for (uint j = 0; j < candidate.size(); ++j) cout << candidate[j] << ", ";
+        cout << "]  ";
+
+        invariants_ok(candidate, new_g, old_g, old_degrees_sorted);
     }
 
     return 0;
 }
-
-
-
-
