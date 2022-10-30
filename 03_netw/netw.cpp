@@ -219,8 +219,7 @@ bool is_connected(vector<bool> &in_subset, vector<uint> &curr_subset, vector<vec
     return true;
 }
 
-// TODO: kontrola pravidla sousednosti
-map<uint, uint> find_mapping(
+vector<vector<uint>> find_mappings(
         vector<bool> &in_subset,
         vector<uint> &curr_subset,
         vector<vector<wd_pair>> &new_g,
@@ -240,13 +239,44 @@ map<uint, uint> find_mapping(
     sort(d1_new_sorted.begin(), d1_new_sorted.end());
     for (uint i = 0; i < d1_old_sorted.size(); ++i) {
         if (d1_old_sorted[i] != d1_new_sorted[i]) {
-            cout << "d1 mapping NOT ok. \n";
+            cout << "d1 mapping NOT ok... \n";
             return {{}};
         }
     }
-    cout << "d1 mapping ok. \n";
+    cout << "d1 mapping ok... ";
 
+    vector<vector<uint>> mapping(10);
+    vector<bool> mapped_nodes_old(old_g.size(), false);
+    vector<bool> mapped_nodes_new(30, false);
     map<uint, vector<uint>> d2_new = get_new_d2(new_g, curr_subset, in_subset);
+    for (auto const& op : d2_old) { // pro vsechny vektory D2 ve starem
+        uint curr_old_node = op.first;
+        vector<uint> old_nei_degs = op.second;
+        // najdi tento vektor uvnitr d2_new
+        // pokud tam neni, vrat prazdnej mapping
+        for (auto np : d2_new) { // pro vsechny vektory D2 v novem
+            uint curr_new_node = np.first;
+            vector<uint> new_nei_degs = np.second;
+            for (uint k = 0; k < old_nei_degs.size(); ++k) { // pro kazdy zaznam D2 vektoru ve starem
+                if(old_nei_degs[k] != new_nei_degs[k]) { // zaznamy se nerovnaji-> mame spatnej match D2_old a D2_new
+                    continue;
+                } else { // pokud se rovnaji, zaznamename o ktere uzly se jedna
+                    mapping[curr_old_node].push_back(curr_new_node);
+                    mapped_nodes_old[curr_old_node] = true;
+                    mapped_nodes_new[curr_new_node] = true;
+                }
+            }
+        }
+    }
+    for(auto node : mapped_nodes_old) {
+        if(!mapped_nodes_old[node]) {
+            cout << "    D2 mapping NOT ok. \n";
+            return {};
+        }
+    }
+
+    cout << "    D2 mapping ok. \n";
+    // porovnej vectory v mapach, najdi matchujici
 
 
     // rozdel uzly do skupin dle degrees
@@ -257,7 +287,7 @@ map<uint, uint> find_mapping(
     // pro kazdy mapping:
     // zkontroluj kazdou hranu v mappingu zda existuje v novem i starem grafu
 
-    return {{0,0}};
+    return mapping;
 }
 
 
@@ -301,7 +331,7 @@ int main() {
             cout << "connected, ";
         }
 
-        map<uint, uint> mapping = find_mapping(
+        vector<vector<uint>> mappings = find_mappings(
                 in_subset, candidate,new_g,
                 old_g, old_d1, old_d2
             );
