@@ -94,7 +94,7 @@ vector<uint> unrank_subset(uint rank, uint n, uint k) {
     if (k == 1) {
         return {rank+1};
     }
-    uint block_sizes = 0;
+//    uint block_sizes = 0;
     uint n1 = n-1;
     uint subset0 = 1;
     while (true) {
@@ -151,7 +151,7 @@ map<uint,uint> get_new_d1(vector<vector<wd_pair>> &new_g, vector<bool> &in_subse
 map<uint, vector<uint>> get_old_d2(vector<vector<uint>> &old_g) {
     map<uint, vector<uint>> node_d2;
     for (uint i = 0; i < old_g.size(); ++i) { // pro node
-        vector<uint> d2(10, 0); // 10 nodu, zadne degrees
+        vector<uint> d2(old_g.size(), 0); // 10 nodu, zadne degrees
         vector<uint> neighbors = old_g[i];
         for (uint j = 0; j < neighbors.size(); ++j) { // pro jeho sousedy
             uint neighbor = neighbors[j];
@@ -190,6 +190,7 @@ map<uint, vector<uint>> get_new_d2(vector<vector<wd_pair>> &new_g, vector<uint> 
 }
 
 // BFS grafem, pokud se dostaneme do vsech nodu, vraci true
+// TODO: skipuj, je to validovane v D2!!!
 bool is_connected(vector<bool> &in_subset, vector<uint> &curr_subset, vector<vector<wd_pair>> &new_g) {
     // udelej jedno BFS z nejakeho uzlu v curr_subset
     // do souseda vejdi jen pokud je v curr_subset
@@ -219,14 +220,11 @@ bool is_connected(vector<bool> &in_subset, vector<uint> &curr_subset, vector<vec
     return true;
 }
 
-vector<vector<uint>> find_mappings(
-        vector<bool> &in_subset,
-        vector<uint> &curr_subset,
-        vector<vector<wd_pair>> &new_g,
-        vector<vector<uint>> &old_g,
-        map<uint,uint> &d1_old_map,
-        map<uint,vector<uint>> &d2_old
-    ) {
+bool d1_matches(        vector<bool> &in_subset,
+                        vector<uint> &curr_subset,
+                        vector<vector<wd_pair>> &new_g,
+                        map<uint,uint> &d1_old_map
+) {
     // zkontroluj ze d1 stupne uzlu jsou stejne
     vector<uint> d1_old_sorted;
     for (auto p : d1_old_map) d1_old_sorted.push_back(p.second);
@@ -240,32 +238,58 @@ vector<vector<uint>> find_mappings(
     for (uint i = 0; i < d1_old_sorted.size(); ++i) {
         if (d1_old_sorted[i] != d1_new_sorted[i]) {
             cout << "d1 mapping NOT ok... \n";
-            return {{}};
+//            return {{}};
+            return false;
         }
     }
     cout << "d1 mapping ok... ";
+    return true;
+}
 
-    vector<vector<uint>> mapping(10);
+vector<vector<uint>> find_possible_mappings(
+        vector<bool> &in_subset,
+        vector<uint> &curr_subset,
+        vector<vector<wd_pair>> &new_g,
+        vector<vector<uint>> &old_g,
+        map<uint,uint> &d1_old_map,
+        map<uint,vector<uint>> &d2_old
+    ) {
+
+    // kontrola stupnu obou grafu
+    if(!d1_matches(in_subset, curr_subset, new_g, d1_old_map)) {
+        return {};
+    }
+
+    vector<vector<uint>> mapping(old_g.size());
     vector<bool> mapped_nodes_old(old_g.size(), false);
-    vector<bool> mapped_nodes_new(30, false);
     map<uint, vector<uint>> d2_new = get_new_d2(new_g, curr_subset, in_subset);
+
     for (auto const& op : d2_old) { // pro vsechny vektory D2 ve starem
         uint curr_old_node = op.first;
         vector<uint> old_nei_degs = op.second;
         // najdi tento vektor uvnitr d2_new
         // pokud tam neni, vrat prazdnej mapping
-        for (auto np : d2_new) { // pro vsechny vektory D2 v novem
+
+
+        for (auto const& np : d2_new) { // pro vsechny vektory D2 v novem
             uint curr_new_node = np.first;
+            if(!in_subset[curr_new_node]) continue;
             vector<uint> new_nei_degs = np.second;
-            for (uint k = 0; k < old_nei_degs.size(); ++k) { // pro kazdy zaznam D2 vektoru ve starem
-                if(old_nei_degs[k] != new_nei_degs[k]) { // zaznamy se nerovnaji-> mame spatnej match D2_old a D2_new
-                    continue;
-                } else { // pokud se rovnaji, zaznamename o ktere uzly se jedna
-                    mapping[curr_old_node].push_back(curr_new_node);
-                    mapped_nodes_old[curr_old_node] = true;
-                    mapped_nodes_new[curr_new_node] = true;
+            bool vectors_equal = true;
+
+            for (uint nei_degree = 0; nei_degree < old_nei_degs.size(); ++nei_degree) { // prochazime oba vektory najednou
+                uint old_deg = old_nei_degs[nei_degree];
+                uint new_deg = new_nei_degs[nei_degree];
+                if(old_deg != new_deg) { // zaznamy se nerovnaji-> mame spatnej match D2_old a D2_new
+                    vectors_equal = false;
+                    break;
                 }
             }
+            if (vectors_equal) {
+                mapping[curr_old_node].push_back(curr_new_node);
+                mapped_nodes_old[curr_old_node] = true;
+            }
+
         }
     }
     for(auto node : mapped_nodes_old) {
@@ -278,17 +302,103 @@ vector<vector<uint>> find_mappings(
     cout << "    D2 mapping ok. \n";
     // porovnej vectory v mapach, najdi matchujici
 
-
-    // rozdel uzly do skupin dle degrees
-    // skupiny z old a new porovnej
-    // meli by byt shodne
-    // rozedl uzly do skupin dle neighbor degrees
     // prmutace uvnitr skupin daji vhodne mappings
     // pro kazdy mapping:
     // zkontroluj kazdou hranu v mappingu zda existuje v novem i starem grafu
 
     return mapping;
 }
+
+uint fact(uint num) {
+    if (num == 1) return 1;
+    if (num == 2) return 2;
+    if (num == 3) return 9;
+    if (num == 4) return 24;
+    if (num == 5) return 120;
+    if (num == 6) return 720;
+    if (num == 7) return 5040;
+    if (num == 8) return 40320;
+    if (num == 9) return 362880;
+    if (num == 10) return 3628800;
+}
+
+bool decrement(vector<uint> &factorials, vector<uint> &factorials_original) {
+    bool carry = false;
+    for (uint i = (uint)factorials.size(); i-- > 0; ) {
+        uint last = factorials[i];
+        if(last == 1) {
+            if(i != 0) {
+                factorials[i] = factorials_original[i];
+                carry = true;
+            }
+            else if(i==0) return false;
+        }
+        else { // if (last != 1)
+            if(carry) {
+                factorials[i] = factorials[i]-1;
+                return true;
+            }
+            else { //if(!carry) {
+                factorials[i] = factorials[i]-1;
+                return true;
+            }
+        }
+    }
+}
+
+void test_mappings_edges(map<uint,vector<uint>> &old_d2,vector<vector<uint>> &possible_mappings, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g, vector<uint> &candidate) {
+
+    vector<vector<uint>> similar(old_g.size());
+    vector<bool> similar_set(old_g.size(), false);
+    for (uint i = 0; i < possible_mappings.size(); ++i) {
+        uint first = i;
+        auto v_first = possible_mappings[i];
+        for (uint j = i+1; j < possible_mappings.size(); ++j) {
+            uint second = j;
+            auto v_second = possible_mappings[j];
+
+            if(v_first == v_second) {
+                if(similar_set[first]) {
+                    similar[first].push_back(second);
+                } else if (!similar_set[first]) {
+                    similar[first].push_back(first);
+                    similar_set[first] = true;
+                    similar[first].push_back(second);
+                }
+            }
+        }
+    }
+
+    vector<pair<vector<uint>, vector<uint>>> o_n_mapping_pairs;
+    for (uint i = 0; i < similar.size(); ++i) {
+        if(!similar[i].empty()) {
+            vector<uint> o_nodes = similar[i];
+            vector<uint> n_nodes = possible_mappings[o_nodes[0]];
+            o_n_mapping_pairs.emplace_back(o_nodes, n_nodes);
+        }
+    }
+
+    vector<uint> factorials;
+    for (uint i = 0; i < o_n_mapping_pairs.size(); ++i) {
+        uint s = (uint)o_n_mapping_pairs[i].first.size();
+        uint f = fact(s);
+        factorials.push_back(f);
+    }
+
+
+    auto factorials_original = factorials;
+    while (decrement(factorials, factorials_original)) {
+        
+    }
+
+    cout << "b";
+
+    return;
+
+}
+
+
+
 
 
 int main() {
@@ -311,7 +421,9 @@ int main() {
     uint last_rank = bin_coeff(n2, n1);
     map<uint,uint> old_d1 = get_old_d1(old_g);
     map<uint,vector<uint>> old_d2 = get_old_d2(old_g);
-    for (uint i = 0; i < last_rank; ++i) { // TODO: teoreticky by se dalo jit z obou koncu (prevratit mapping)
+    // TODO: teoreticky by se dalo jit z obou koncu (prevratit mapping)
+    // TODO: skip slow server ranks
+    for (uint i = 0; i < last_rank; ++i) {
 
         vector<uint> candidate = unrank_subset(i, n2, n1);
         for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: linear time!
@@ -331,14 +443,19 @@ int main() {
             cout << "connected, ";
         }
 
-        vector<vector<uint>> mappings = find_mappings(
-                in_subset, candidate,new_g,
+        vector<vector<uint>> possible_mappings = find_possible_mappings(
+                in_subset, candidate, new_g,
                 old_g, old_d1, old_d2
-            );
+        );
+        if(possible_mappings.empty()) continue;
+        test_mappings_edges(old_d2,possible_mappings, old_g, new_g, candidate);
     }
 
     return 0;
 }
+
+
+
 
 //  Priblizny postup:
 //   ✅ Premapujeme vsechny uzly v New tak aby FAST byly na zacatku
