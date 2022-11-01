@@ -346,6 +346,19 @@ bool decrement(vector<uint> &factorials, vector<uint> &factorials_original) {
     }
 }
 
+vector<vector<uint>> gen_perms(vector<uint> &factorials, vector<pair<vector<uint>, vector<uint>>> o_n_mapping_pairs) {
+    vector<vector<uint>> res(factorials.size());
+    for (uint i = 0; i < factorials.size(); ++i) {
+        uint rank = factorials[i];
+        auto m = o_n_mapping_pairs[i].second;
+        for (uint j = 0; j < rank; ++j) {
+            prev_permutation(m.begin(), m.end());
+        }
+        res[i] = m;
+    }
+    return res;
+}
+
 void test_mappings_edges(map<uint,vector<uint>> &old_d2,vector<vector<uint>> &possible_mappings, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g, vector<uint> &candidate) {
 
     vector<vector<uint>> similar(old_g.size());
@@ -385,11 +398,12 @@ void test_mappings_edges(map<uint,vector<uint>> &old_d2,vector<vector<uint>> &po
         factorials.push_back(f);
     }
 
-
     auto factorials_original = factorials;
-    while (decrement(factorials, factorials_original)) {
-        
-    }
+    do {
+        auto perms = gen_perms(factorials, o_n_mapping_pairs);
+        cout << "b";
+        // check all edges
+    } while (decrement(factorials, factorials_original));
 
     cout << "b";
 
@@ -453,6 +467,7 @@ int main() {
 
     return 0;
 }
+
 
 
 
