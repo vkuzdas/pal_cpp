@@ -346,73 +346,117 @@ bool decrement(vector<uint> &factorials, vector<uint> &factorials_original) {
     }
 }
 
-vector<vector<uint>> gen_perms(vector<uint> &factorials, vector<pair<vector<uint>, vector<uint>>> o_n_mapping_pairs) {
-    vector<vector<uint>> res(factorials.size());
+vector<uint> gen_perms(vector<uint> &factorials, vector<pair<vector<uint>,vector<uint>>> &o_n_mapping_pairs, vector<vector<uint>> &old_g) {
+    // TODO: ukladani permutaci pro speed
+    vector<vector<uint>> perm(factorials.size());
     for (uint i = 0; i < factorials.size(); ++i) {
         uint rank = factorials[i];
         auto m = o_n_mapping_pairs[i].second;
         for (uint j = 0; j < rank; ++j) {
             prev_permutation(m.begin(), m.end());
         }
-        res[i] = m;
+        perm[i] = m;
     }
-    return res;
+    vector<uint> index_map(old_g.size());
+    for (uint p = 0; p < o_n_mapping_pairs.size(); ++p) {
+        auto pair = o_n_mapping_pairs[p];
+        for (uint i = 0; i < pair.first.size(); ++i) {
+            uint old_node = pair.first[i];
+            uint new_node = perm[p][i];
+            index_map[old_node] = new_node;
+        }
+    }
+    return index_map;
+}
+
+bool check_mapping(vector<uint> &index_map, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g) {
+    for (uint i = 0; i < old_g.size(); ++i) {
+        for (uint j = 0; j < old_g[i].size(); ++j) {
+            uint s = i;
+            uint d = old_g[i][j];
+            pair<uint, uint> old_edge = {s, d};
+            pair<uint, uint> new_edge = {index_map[s], index_map[d]};
+            // does such new_edge exist in new_g?
+            bool edge_exists = false;
+            for (uint k = 0; k < new_g[new_edge.first].size(); ++k) {
+                uint new_d = new_g[new_edge.first][k].second;
+                if(new_d == new_edge.second) {
+                    edge_exists = true;
+                    break;
+                }
+            }
+            if (!edge_exists) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 void test_mappings_edges(map<uint,vector<uint>> &old_d2,vector<vector<uint>> &possible_mappings, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g, vector<uint> &candidate) {
 
-    vector<vector<uint>> similar(old_g.size());
-    vector<bool> similar_set(old_g.size(), false);
-    for (uint i = 0; i < possible_mappings.size(); ++i) {
-        uint first = i;
-        auto v_first = possible_mappings[i];
-        for (uint j = i+1; j < possible_mappings.size(); ++j) {
-            uint second = j;
-            auto v_second = possible_mappings[j];
+    vector<pair<vector<uint>, vector<uint>>> o_n_pairing;
 
-            if(v_first == v_second) {
-                if(similar_set[first]) {
-                    similar[first].push_back(second);
-                } else if (!similar_set[first]) {
-                    similar[first].push_back(first);
-                    similar_set[first] = true;
-                    similar[first].push_back(second);
+    for (uint i = 0; i < possible_mappings.size(); ++i) {
+        uint mapping_src = i;
+        vector<uint> dst_list = possible_mappings[i];
+        if(dst_list.size()==1) {
+            o_n_pairing.push_back({{mapping_src}, dst_list });
+        } else {
+            uint dst_mapping_index = UINT_MAX;
+            for (uint j = 0; j < o_n_pairing.size(); ++j) {
+                if(o_n_pairing[j].second == dst_list) {
+                    dst_mapping_index = j;
+                    break;
                 }
+            }
+            if(dst_mapping_index != UINT_MAX) { // dst_mapping je v o_n_pairingu
+                o_n_pairing[dst_mapping_index].first.push_back(mapping_src);
+            } else { // dst_mapping NENI v o_n_pairingu
+                o_n_pairing.push_back({{mapping_src}, dst_list });
             }
         }
     }
 
-    vector<pair<vector<uint>, vector<uint>>> o_n_mapping_pairs;
-    for (uint i = 0; i < similar.size(); ++i) {
-        if(!similar[i].empty()) {
-            vector<uint> o_nodes = similar[i];
-            vector<uint> n_nodes = possible_mappings[o_nodes[0]];
-            o_n_mapping_pairs.emplace_back(o_nodes, n_nodes);
-        }
-    }
-
     vector<uint> factorials;
-    for (uint i = 0; i < o_n_mapping_pairs.size(); ++i) {
-        uint s = (uint)o_n_mapping_pairs[i].first.size();
+    for (uint i = 0; i < o_n_pairing.size(); ++i) {
+        uint s = (uint)o_n_pairing[i].first.size();
         uint f = fact(s);
         factorials.push_back(f);
     }
 
     auto factorials_original = factorials;
     do {
-        auto perms = gen_perms(factorials, o_n_mapping_pairs);
-        cout << "b";
-        // check all edges
+        vector<uint> index_map = gen_perms(factorials, o_n_pairing, old_g);
+        cout << "    {";  for (uint f : factorials) cout << f << ", "; cout << "}  -> ";
+        cout << "[";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";
+        bool valid_mapping = check_mapping(index_map, old_g, new_g);
+        if(valid_mapping) {
+            cout << "                valid mapping\n";
+        } else {
+            cout << "            NOT valid mapping\n";
+        }
     } while (decrement(factorials, factorials_original));
 
-    cout << "b";
 
     return;
 
 }
 
 
+void k_subsets3a(vector<uint> &set, uint k, uint i_start,
+                 vector<uint> &result, uint depth, vector<vector<uint>> &collector) {
+    if(depth == k) {
+        collector.push_back(result);
+        return;
+    }
 
+    uint i_lastStart = (uint) set.size() - (k - depth);
+    for (uint i = i_start; i < i_lastStart+1; ++i) {
+        result[depth] = set[i];
+        k_subsets3a(set, k, i + 1, result, depth + 1, collector);
+    }
+}
 
 
 int main() {
@@ -435,12 +479,14 @@ int main() {
     uint last_rank = bin_coeff(n2, n1);
     map<uint,uint> old_d1 = get_old_d1(old_g);
     map<uint,vector<uint>> old_d2 = get_old_d2(old_g);
-    // TODO: teoreticky by se dalo jit z obou koncu (prevratit mapping)
-    // TODO: skip slow server ranks
+
+
+
+
     for (uint i = 0; i < last_rank; ++i) {
 
         vector<uint> candidate = unrank_subset(i, n2, n1);
-        for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: linear time!
+        for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: this is linear time!
 
         cout << i << " / " << last_rank << " candidate:  [";
         for (uint j = 0; j < candidate.size(); ++j) cout << candidate[j] << ", ";
@@ -469,6 +515,39 @@ int main() {
 }
 
 
+
+
+
+int gen_max_fast() {
+    vector<uint> all_f{2, 4, 6, 8, 9};
+    vector<uint> all_s{1, 3, 5, 7, 9};
+
+    for(auto F = (uint)all_f.size(); F > 0 ; F--) {
+
+        uint S = (uint)all_f.size() - F;
+        vector<vector<uint>> f_subsets{};
+        vector<vector<uint>> s_subsets{};
+
+        vector<uint> empty_f(F, 0);
+        k_subsets3a(all_f, F, 0, empty_f, 0, f_subsets);
+
+        vector<uint> empty_s(S, 0);
+        k_subsets3a(all_s, S, 0, empty_s, 0, s_subsets);
+
+
+        for (auto f_sub : f_subsets) {
+            for (auto s_sub : s_subsets) {
+                if (F>S) {
+                    f_sub.insert(f_sub.end(), s_sub.begin(), s_sub.end() );
+
+                } else {
+                    s_sub.insert(s_sub.end(), f_sub.begin(), f_sub.end() );
+
+                }
+            }
+        }
+    }
+}
 
 
 
