@@ -27,26 +27,32 @@ vector<vector<uint>> get_old_net(uint n, uint m) {
 }
 
 // input
-vector<vector<wd_pair>> get_new_net(uint vert_count, uint edge_count) {
-    // reads graph from input and represents it as mirrored directed graph in adj list
+vector<vector<wd_pair>> get_new_net(uint vert_count, uint edge_count, vector<bool> &is_f, vector<uint> &all_s) {
+    // vezme graf z inputu
+    // k tomu zaznamena vytvori seznam pomalych serveru
     vector<vector<wd_pair>> adj(vert_count);
     for (uint i = 0; i < edge_count; ++i) {
         uint src, dest, weight;
         cin >> src >> dest >> weight;
         adj[src].push_back({weight, dest});
         adj[dest].push_back({weight, src});
+        if(!is_f[src]) all_s.push_back(src);
     }
     return adj;
 }
 
 // input
-void get_fast_servers(uint f, vector<bool> &is_fast, vector<uint> &f_servers) {
+vector<uint> get_all_f(uint f, vector<bool> &is_f) {
+    // z inputu vezme rychle servery
+    // k tomu vyplni seznam vsech uzlu zda je nebo neni konkretni uzel rychly
+    vector<uint> all_f(f);
     for (uint i = 0; i < f; ++i) {
-        uint edge_label;
-        cin >> edge_label;
-        is_fast[edge_label] = true;
-        f_servers[i] = edge_label;
+        uint node;
+        cin >> node;
+        is_f[node] = true;
+        all_f[i] = node;
     }
+    return all_f;
 }
 
 // Chceme fast servery co nejvice na levo
@@ -347,7 +353,7 @@ bool decrement(vector<uint> &factorials, vector<uint> &factorials_original) {
 }
 
 vector<uint> gen_perms(vector<uint> &factorials, vector<pair<vector<uint>,vector<uint>>> &o_n_mapping_pairs, vector<vector<uint>> &old_g) {
-    // TODO: ukladani permutaci pro speed
+
     vector<vector<uint>> perm(factorials.size());
     for (uint i = 0; i < factorials.size(); ++i) {
         uint rank = factorials[i];
@@ -393,7 +399,7 @@ bool check_mapping(vector<uint> &index_map, vector<vector<uint>> &old_g, vector<
     return true;
 }
 
-void test_mappings_edges(map<uint,vector<uint>> &old_d2,vector<vector<uint>> &possible_mappings, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g, vector<uint> &candidate) {
+uint test_mappings_edges(vector<vector<uint>> &possible_mappings, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g, vector<bool> &in_subset) {
 
     vector<pair<vector<uint>, vector<uint>>> o_n_pairing;
 
@@ -426,21 +432,36 @@ void test_mappings_edges(map<uint,vector<uint>> &old_d2,vector<vector<uint>> &po
     }
 
     auto factorials_original = factorials;
+    vector<vector<uint>> valid_mappings;
     do {
+        // TODO: gen_perms lze cacheovat
         vector<uint> index_map = gen_perms(factorials, o_n_pairing, old_g);
-        cout << "    {";  for (uint f : factorials) cout << f << ", "; cout << "}  -> ";
-        cout << "[";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";
         bool valid_mapping = check_mapping(index_map, old_g, new_g);
         if(valid_mapping) {
-            cout << "                valid mapping\n";
-        } else {
-            cout << "            NOT valid mapping\n";
+            cout << "           [";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";
+            cout << "           valid mapping\n";
+            valid_mappings.push_back(index_map);
         }
     } while (decrement(factorials, factorials_original));
 
+    uint min_cost = UINT_MAX;
+    for (auto vm : valid_mappings) {
+        vector<uint> visited(new_g.size(), false);
+        uint c_sum = 0;
+        for (uint src : vm) {
+            for(wd_pair nei : new_g[src]) {
+                uint w = nei.first;
+                uint d = nei.second;
+                if(!in_subset[d]) continue;
+                if(visited[d]) continue;
+                c_sum += w; // wd_pair -> {weight, destination}
+            }
+            visited[src] = true;
+        }
+        min_cost = min(min_cost,c_sum);
+    }
 
-    return;
-
+    return min_cost;
 }
 
 
@@ -460,56 +481,69 @@ void k_subsets3a(vector<uint> &set, uint k, uint i_start,
 
 
 int main() {
-    // get old
+    // get old/small network
     uint n1, m1;
     cin >> n1 >> m1;
     vector<vector<uint>> old_g = get_old_net(n1, m1);
 
-    // get new
-    uint n2, m2, f;
-    cin >> n2 >> m2 >> f;
-    vector<bool>is_fast(30); // 1 ≤ F2 ≤ N2, 5 ≤ N2 ≤ 30
-    vector<uint>f_servers(f, false);
-    get_fast_servers(f, is_fast, f_servers);
-    vector<vector<wd_pair>> new_g = get_new_net(n2, m2);
+    // get new/big network
+    uint n2, m2, F;
+    cin >> n2 >> m2 >> F;
+    vector<bool>is_f(n2,false);
+    vector<uint>all_f = get_all_f(F, is_f);
+    vector<uint>all_s;
+    vector<vector<wd_pair>> new_g = get_new_net(n2, m2, is_f,all_s);
 
-    // remapuj aby fast servery byly na prvnich mistech -> generovat budeme nejdrive MAX(F)
-    new_g = remap_new_g(new_g, is_fast, f_servers);
-    // kombinacni cislo: n1-servrové kombinace z n2 serveru [napr 5 serveru z 10]
-    uint last_rank = bin_coeff(n2, n1);
+    // predpocitej degrees uzlu a degrees sousedu
     map<uint,uint> old_d1 = get_old_d1(old_g);
     map<uint,vector<uint>> old_d2 = get_old_d2(old_g);
 
+    /// postupuj od nejvyssiho poctu rychlych serveru F
+    bool decrease_f = true;
+    uint overall_min = UINT_MAX;
+    uint output_f = F;
+    for(auto curr_f = F; curr_f > 0 ; curr_f--) {
 
+        if (!decrease_f) break;
 
+        uint curr_s = n1 - curr_f;
+        vector<vector<uint>> f_subsets{};
+        vector<vector<uint>> s_subsets{};
+        vector<uint> empty_f(curr_f, 0);
+        vector<uint> empty_s(curr_s, 0);
+        /// generuj vsechny mozne vybery rychlych a pomalych serveru
+        k_subsets3a(all_f, curr_f, 0, empty_f, 0, f_subsets);
+        k_subsets3a(all_s, curr_s, 0, empty_s, 0, s_subsets);
 
-    for (uint i = 0; i < last_rank; ++i) {
+        for (auto f_sub : f_subsets) {
+            for (auto s_sub : s_subsets) {
+                vector<uint> the_subset;
+                the_subset.insert(the_subset.end(), f_sub.begin(), f_sub.end());
+                the_subset.insert(the_subset.end(), s_sub.begin(), s_sub.end());
 
-        vector<uint> candidate = unrank_subset(i, n2, n1);
-        for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: this is linear time!
+                vector<bool> in_subset(n2, false);
+                for (auto node : the_subset) in_subset[node] = true;
 
-        cout << i << " / " << last_rank << " candidate:  [";
-        for (uint j = 0; j < candidate.size(); ++j) cout << candidate[j] << ", ";
-        cout << "]  ";
+                cout <<" the_subset: (f=" << curr_f <<")  [";
+                for (auto node : the_subset) cout << node << ", ";
+                cout << "]  ";
 
-        vector<bool> in_subset(30, false);
-        for (auto node : candidate) in_subset[node] = true;
-        if(!is_connected(in_subset, candidate, new_g)) {
-            setbuf(stdout, nullptr);
-            cout << "disconnected.\n";
-            continue;
-        } else {
-            setbuf(stdout, nullptr);
-            cout << "connected, ";
+                vector<vector<uint>> possible_mappings = find_possible_mappings(
+                        in_subset, the_subset, new_g,
+                        old_g, old_d1, old_d2
+                );
+                if(possible_mappings.empty()) continue;
+
+                /// nyni lze opt najit s F = curr_f !!
+                decrease_f = false; // breakuje vrchni iteraci z MAX(F),
+                output_f = curr_f;
+                uint min_cost = test_mappings_edges(possible_mappings, old_g, new_g, in_subset);
+                overall_min = min(overall_min, min_cost);
+            }
         }
-
-        vector<vector<uint>> possible_mappings = find_possible_mappings(
-                in_subset, candidate, new_g,
-                old_g, old_d1, old_d2
-        );
-        if(possible_mappings.empty()) continue;
-        test_mappings_edges(old_d2,possible_mappings, old_g, new_g, candidate);
     }
+    cout << output_f << "\n";
+    cout << overall_min;
 
     return 0;
 }
@@ -518,36 +552,37 @@ int main() {
 
 
 
-int gen_max_fast() {
-    vector<uint> all_f{2, 4, 6, 8, 9};
-    vector<uint> all_s{1, 3, 5, 7, 9};
-
-    for(auto F = (uint)all_f.size(); F > 0 ; F--) {
-
-        uint S = (uint)all_f.size() - F;
-        vector<vector<uint>> f_subsets{};
-        vector<vector<uint>> s_subsets{};
-
-        vector<uint> empty_f(F, 0);
-        k_subsets3a(all_f, F, 0, empty_f, 0, f_subsets);
-
-        vector<uint> empty_s(S, 0);
-        k_subsets3a(all_s, S, 0, empty_s, 0, s_subsets);
-
-
-        for (auto f_sub : f_subsets) {
-            for (auto s_sub : s_subsets) {
-                if (F>S) {
-                    f_sub.insert(f_sub.end(), s_sub.begin(), s_sub.end() );
-
-                } else {
-                    s_sub.insert(s_sub.end(), f_sub.begin(), f_sub.end() );
-
-                }
-            }
-        }
-    }
-}
+//int previous_main() {
+//    for (uint i = 0; i < last_rank; ++i) {
+//
+//        vector<uint> candidate = unrank_subset(i, n2, n1);
+//        for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: this is linear time!
+//
+//        cout << i << " / " << last_rank << " candidate:  [";
+//        for (uint j = 0; j < candidate.size(); ++j) cout << candidate[j] << ", ";
+//        cout << "]  ";
+//
+//        vector<bool> in_subset(30, false);
+//        for (auto node : candidate) in_subset[node] = true;
+//        if(!is_connected(in_subset, candidate, new_g)) {
+//            setbuf(stdout, nullptr);
+//            cout << "disconnected.\n";
+//            continue;
+//        } else {
+//            setbuf(stdout, nullptr);
+//            cout << "connected, ";
+//        }
+//
+//        vector<vector<uint>> possible_mappings = find_possible_mappings(
+//                in_subset, candidate, new_g,
+//                old_g, old_d1, old_d2
+//        );
+//        if(possible_mappings.empty()) continue;
+//        test_mappings_edges(old_d2,possible_mappings, old_g, new_g, candidate);
+//    }
+//
+//
+//}
 
 
 
