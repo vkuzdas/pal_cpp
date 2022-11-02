@@ -443,6 +443,7 @@ uint test_mappings_edges(vector<vector<uint>> &possible_mappings, vector<vector<
             cout << "           [";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";
             cout << "           valid mapping\n";
             valid_mappings.push_back(index_map);
+            break;
         }
     } while (decrement(factorials, factorials_original));
 
@@ -511,7 +512,15 @@ int main() {
 
         if (!decrease_f) break;
 
-        uint curr_s = n1 - curr_f;
+
+        uint curr_s;
+        if(curr_f > n1) {
+            curr_s = 0;
+            curr_f = n1;
+        } else{
+            curr_s = n1 - curr_f;
+        }
+
         vector<vector<uint>> f_subsets{};
         vector<vector<uint>> s_subsets{};
         vector<uint> empty_f(curr_f, 0);
