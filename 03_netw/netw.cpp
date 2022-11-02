@@ -7,6 +7,7 @@
 #include <vector>
 #include <algorithm>
 #include <queue>
+#include <climits>
 #include <map>
 
 using namespace std;
@@ -27,7 +28,7 @@ vector<vector<uint>> get_old_net(uint n, uint m) {
 }
 
 // input
-vector<vector<wd_pair>> get_new_net(uint vert_count, uint edge_count, vector<bool> &is_f, vector<uint> &all_s) {
+vector<vector<wd_pair>> get_new_net(uint vert_count, uint edge_count) {
     // vezme graf z inputu
     // k tomu zaznamena vytvori seznam pomalych serveru
     vector<vector<wd_pair>> adj(vert_count);
@@ -36,7 +37,6 @@ vector<vector<wd_pair>> get_new_net(uint vert_count, uint edge_count, vector<boo
         cin >> src >> dest >> weight;
         adj[src].push_back({weight, dest});
         adj[dest].push_back({weight, src});
-        if(!is_f[src]) all_s.push_back(src);
     }
     return adj;
 }
@@ -326,6 +326,7 @@ uint fact(uint num) {
     if (num == 8) return 40320;
     if (num == 9) return 362880;
     if (num == 10) return 3628800;
+    return 0;
 }
 
 bool decrement(vector<uint> &factorials, vector<uint> &factorials_original) {
@@ -350,6 +351,7 @@ bool decrement(vector<uint> &factorials, vector<uint> &factorials_original) {
             }
         }
     }
+    return false;
 }
 
 vector<uint> gen_perms(vector<uint> &factorials, vector<pair<vector<uint>,vector<uint>>> &o_n_mapping_pairs, vector<vector<uint>> &old_g) {
@@ -380,7 +382,7 @@ bool check_mapping(vector<uint> &index_map, vector<vector<uint>> &old_g, vector<
         for (uint j = 0; j < old_g[i].size(); ++j) {
             uint s = i;
             uint d = old_g[i][j];
-            pair<uint, uint> old_edge = {s, d};
+//            pair<uint, uint> old_edge = {s, d};
             pair<uint, uint> new_edge = {index_map[s], index_map[d]};
             // does such new_edge exist in new_g?
             bool edge_exists = false;
@@ -491,8 +493,11 @@ int main() {
     cin >> n2 >> m2 >> F;
     vector<bool>is_f(n2,false);
     vector<uint>all_f = get_all_f(F, is_f);
+
     vector<uint>all_s;
-    vector<vector<wd_pair>> new_g = get_new_net(n2, m2, is_f,all_s);
+    for (uint i = 0; i < n2; ++i) if(!is_f[i]) all_s.push_back(i);
+
+    vector<vector<wd_pair>> new_g = get_new_net(n2, m2);
 
     // predpocitej degrees uzlu a degrees sousedu
     map<uint,uint> old_d1 = get_old_d1(old_g);
@@ -547,43 +552,6 @@ int main() {
 
     return 0;
 }
-
-
-
-
-
-//int previous_main() {
-//    for (uint i = 0; i < last_rank; ++i) {
-//
-//        vector<uint> candidate = unrank_subset(i, n2, n1);
-//        for (uint j = 0; j < candidate.size(); ++j) candidate[j] = candidate[j]-1; // TODO: this is linear time!
-//
-//        cout << i << " / " << last_rank << " candidate:  [";
-//        for (uint j = 0; j < candidate.size(); ++j) cout << candidate[j] << ", ";
-//        cout << "]  ";
-//
-//        vector<bool> in_subset(30, false);
-//        for (auto node : candidate) in_subset[node] = true;
-//        if(!is_connected(in_subset, candidate, new_g)) {
-//            setbuf(stdout, nullptr);
-//            cout << "disconnected.\n";
-//            continue;
-//        } else {
-//            setbuf(stdout, nullptr);
-//            cout << "connected, ";
-//        }
-//
-//        vector<vector<uint>> possible_mappings = find_possible_mappings(
-//                in_subset, candidate, new_g,
-//                old_g, old_d1, old_d2
-//        );
-//        if(possible_mappings.empty()) continue;
-//        test_mappings_edges(old_d2,possible_mappings, old_g, new_g, candidate);
-//    }
-//
-//
-//}
-
 
 
 //  Priblizny postup:
