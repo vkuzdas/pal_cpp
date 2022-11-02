@@ -298,8 +298,8 @@ vector<vector<uint>> find_possible_mappings(
 
         }
     }
-    for(auto node : mapped_nodes_old) {
-        if(!mapped_nodes_old[node]) {
+    for (uint i = 0; i < mapped_nodes_old.size(); ++i) {
+        if(!mapped_nodes_old[i]) {
             cout << "    D2 mapping NOT ok. \n";
             return {};
         }
