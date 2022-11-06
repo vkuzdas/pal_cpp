@@ -14,6 +14,35 @@ using namespace std;
 using uint = unsigned int;
 using wd_pair = pair<uint, uint>;
 
+
+class Subseter {
+public:
+    Subseter()=default;
+    vector<vector<uint>> subsets;
+
+
+    void k_subsets3a(const vector<uint>& set, vector<uint>& res,
+                     const uint start, const uint end,
+                     const uint depth, const uint& k) {
+        if(depth >= k) {
+            subsets.push_back(res);
+            return;
+        }
+        for (uint i = start; i <= end && end - i + 1 >= k - depth; i++) {
+            res[depth] = set[i];
+            k_subsets3a(set, res, i + 1, end, depth + 1, k);
+        }
+    }
+
+    void subset(const vector<uint>& set, const uint& k){
+        subsets.clear();
+        vector<uint> results(k);
+        k_subsets3a(set, results, 0, (uint)set.size() - 1, 0, k);
+    }
+
+};
+
+
 // input
 vector<vector<uint>> get_old_net(uint n, uint m) {
     // reads graph from input and represents it as mirrored directed graph in adj list
@@ -55,38 +84,6 @@ vector<uint> get_all_f(uint f, vector<bool> &is_f) {
     return all_f;
 }
 
-// Chceme fast servery co nejvice na levo
-// vytvorime mapping kde jako prvni hodime fasty, potom ostatni servery
-// new_g premapujeme dle tohoto mappingu
-vector<vector<wd_pair>> remap_new_g(vector<vector<wd_pair>> &new_g, vector<bool> &fast_s_bool, vector<uint> &fast_nodes) {
-    vector<uint> map(new_g.size());
-    for (uint i = 0; i < fast_nodes.size(); ++i) {
-        auto fast_node = fast_nodes[i];
-        map[fast_node] = i;
-    }
-    auto itr = (uint)fast_nodes.size();
-    for (uint i = 0; i < new_g.size(); ++i) {
-        if (fast_s_bool[i]) continue;
-        auto slow_node = i;
-        map[slow_node] = itr;
-        itr++;
-    }
-
-    vector<vector<wd_pair>> remapped(new_g.size());
-    for (uint i = 0; i < new_g.size(); ++i) {
-        for (uint j = 0; j < new_g[i].size(); ++j) {
-            uint s, w, d, rem_s, rem_d;
-            s = i;
-            w = new_g[i][j].first;
-            d = new_g[i][j].second;
-            rem_s = map[s];
-            rem_d = map[d];
-            remapped[rem_s].push_back({w, rem_d});
-        }
-    }
-
-    return remapped;
-}
 
 uint bin_coeff(uint n, uint k) {
     double res = 1;
@@ -243,12 +240,12 @@ bool d1_matches(        vector<bool> &in_subset,
     sort(d1_new_sorted.begin(), d1_new_sorted.end());
     for (uint i = 0; i < d1_old_sorted.size(); ++i) {
         if (d1_old_sorted[i] != d1_new_sorted[i]) {
-            cout << "d1 mapping NOT ok... \n";
+//            cout << "d1 mapping NOT ok... \n";
 //            return {{}};
             return false;
         }
     }
-    cout << "d1 mapping ok... ";
+//    cout << "d1 mapping ok... ";
     return true;
 }
 
@@ -300,12 +297,12 @@ vector<vector<uint>> find_possible_mappings(
     }
     for (uint i = 0; i < mapped_nodes_old.size(); ++i) {
         if(!mapped_nodes_old[i]) {
-            cout << "    D2 mapping NOT ok. \n";
+//            cout << "    D2 mapping NOT ok. \n";
             return {};
         }
     }
 
-    cout << "    D2 mapping ok. \n";
+//    cout << "    D2 mapping ok. \n";
     // porovnej vectory v mapach, najdi matchujici
 
     // prmutace uvnitr skupin daji vhodne mappings
@@ -440,8 +437,8 @@ uint test_mappings_edges(vector<vector<uint>> &possible_mappings, vector<vector<
         vector<uint> index_map = gen_perms(factorials, o_n_pairing, old_g);
         bool valid_mapping = check_mapping(index_map, old_g, new_g);
         if(valid_mapping) {
-            cout << "           [";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";
-            cout << "           valid mapping\n";
+//            cout << "           [";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";
+//            cout << "           valid mapping\n";
             valid_mappings.push_back(index_map);
             break;
         }
@@ -481,6 +478,8 @@ void k_subsets3a(vector<uint> &set, uint k, uint i_start,
         k_subsets3a(set, k, i + 1, result, depth + 1, collector);
     }
 }
+
+
 
 
 int main() {
@@ -525,12 +524,17 @@ int main() {
         vector<vector<uint>> s_subsets{};
         vector<uint> empty_f(curr_f, 0);
         vector<uint> empty_s(curr_s, 0);
-        /// generuj vsechny mozne vybery rychlych a pomalych serveru
-        k_subsets3a(all_f, curr_f, 0, empty_f, 0, f_subsets);
-        k_subsets3a(all_s, curr_s, 0, empty_s, 0, s_subsets);
+        Subseter f = Subseter();
+        Subseter s = Subseter();
+        f.subset(all_f, curr_f);
+        s.subset(all_s, curr_s);
 
-        for (auto f_sub : f_subsets) {
-            for (auto s_sub : s_subsets) {
+        /// generuj vsechny mozne vybery rychlych a pomalych serveru
+//        k_subsets3a(all_f, curr_f, 0, empty_f, 0, f_subsets);
+//        k_subsets3a(all_s, curr_s, 0, empty_s, 0, s_subsets);
+
+        for (auto f_sub : f.subsets) {
+            for (auto s_sub : s.subsets) {
                 vector<uint> the_subset;
                 the_subset.insert(the_subset.end(), f_sub.begin(), f_sub.end());
                 the_subset.insert(the_subset.end(), s_sub.begin(), s_sub.end());
@@ -538,9 +542,14 @@ int main() {
                 vector<bool> in_subset(n2, false);
                 for (auto node : the_subset) in_subset[node] = true;
 
-                cout <<" the_subset: (f=" << curr_f <<")  [";
-                for (auto node : the_subset) cout << node << ", ";
-                cout << "]  ";
+//                cout <<" the_subset: (f=" << curr_f <<")  [";
+//                for (auto node : the_subset) cout << node << ", ";
+//                cout << "]  \n";
+
+                if(!is_connected(in_subset, the_subset, new_g)) {
+//                    cout << "               disconnected\n";
+                    continue;
+                }
 
                 vector<vector<uint>> possible_mappings = find_possible_mappings(
                         in_subset, the_subset, new_g,
@@ -556,8 +565,7 @@ int main() {
             }
         }
     }
-    cout << output_f << "\n";
-    cout << overall_min;
+    cout << output_f << " " << overall_min;
 
     return 0;
 }
