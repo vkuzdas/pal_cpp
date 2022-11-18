@@ -4,9 +4,9 @@
 
 #include <iostream>
 #include <vector>
-#include <climits>
 #include <cmath>
 #include <chrono>
+#include <set>
 
 using namespace std;
 using uint = unsigned int;
@@ -15,7 +15,7 @@ using namespace std::chrono;
 
 
 
-const bool DBG_PRINT = true;
+const bool DBG_PRINT = false;
 
 
 template <typename S>
@@ -28,17 +28,34 @@ void print_vec(vector<S> &v, const string &name) {
     }
     cout << "]\n";
 }
-
-size_t prime_size(ulli n) {
-    if(n < 100) return 25;
-    else {
-        auto a = (double)n / log(n);
-        return static_cast<size_t>(a + (a * 0.13));
+template <typename S>
+void print_set(set<S> &s, const string &name) {
+    if(!DBG_PRINT) return;
+    setbuf(stdout, nullptr);
+    cout << name << "=[";
+    for(auto i : s) {
+        cout << i << ", ";
     }
+    cout << "]\n";
 }
 
-void get_root() {
-
+/// toto by mozna slo zrychlit pokud bych rovnou spocital i nasobky tohoto cisla ?
+set<ulli> get_prime_factors_under_D(uint D, ulli n) {
+    set<ulli> pf;
+    ulli prime = 2;
+    while(n > 1) {
+        if(n % prime == 0) {
+            pf.insert(prime);
+            n = n / prime;
+        }
+        else {
+            prime = prime + 1;
+            if (prime > D) {
+                return {};
+            }
+        }
+    }
+    return pf;
 }
 
 /// D je z rozsahu <3,40>
@@ -52,14 +69,15 @@ vector<uint> get_p_under_D(uint D) {
     return {};
 }
 
-vector<uint> sift_under_sqrt(ulli n) {
+// zaroven musime spocitat ktera cisla z techto obsahuji PF < D
+vector<uint> sift_under_sqrt(ulli n, uint D, uint& subtract) {
     // staci nam cisla do sqrt(M_max)
     std::chrono::time_point<std::chrono::system_clock> start, end;
     start = std::chrono::system_clock::now();
 
     uint limit = (uint)sqrt(n);
-    vector<bool> A(limit, true);
-    for (uint i = 2; i < limit; ++i) {
+    vector<bool> A(limit+1, true);
+    for (uint i = 2; i <= limit; ++i) {
         if(A[i]) {
             uint i_incr = 0;
             uint j = i*i + i*i_incr;
@@ -75,12 +93,70 @@ vector<uint> sift_under_sqrt(ulli n) {
     std::chrono::duration<double> elapsed_seconds = end - start;
     if(DBG_PRINT) cout << "sifted in " << elapsed_seconds.count() << "ms\n";
     vector<uint> primes;
-    for (uint i = 2; i < A.size(); ++i) {
-        if(A[i]) primes.push_back(i);
+
+    for (uint i = 2; i < A.size(); ++i) { // 2 neni validni generator
+        if (A[i]) {
+            // i is prime
+            primes.push_back(i);
+            // valid generator?
+            if(i==2)  {
+                subtract++;
+                continue;
+            }
+            set<ulli> pf = get_prime_factors_under_D(D, i-1);
+            if(pf.empty()) {
+                subtract++;
+            }
+        }
     }
 
     return primes;
 }
+
+// normalne by se muselo nasobit exponent-krat zaklad
+// exponentiation by squaring ale dokaze proces zkratit na log(exp)-krat
+// pocita base^(exp) % mod v log(exp)
+
+// 3^11 mod 3
+    // rslt = 1*3%7 = 3, exp--(10)
+    // base = 3*3%7 = 2, exp/2(5)
+    // rslt = 3*2%7 = 6, exp--(4)
+    // base = 2*2%7 = 4, exp/2(2)
+    // base = 4*4%7 = 2, exp/2(1)
+    // rslt = 6*2%7 = 5, exp--(0)
+ulli power(ulli base, ulli exp, ulli mod) {
+    ulli rslt = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) { // exponent je lichy
+            ulli tmp = rslt * base % mod;
+            rslt = tmp;
+            exp = exp - 1;
+        }
+        else { // exponent je sudy
+            base = base * base % mod;
+            exp = exp / 2;
+        }
+    }
+    return rslt;
+}
+
+
+ulli get_root(ulli M, set<ulli>& PF) {
+    ulli phi = M-1;
+    for (ulli r = 2; r <= phi; r++) {
+        bool valid_root = false;
+        for (ulli p : PF) {
+            // validni root neni kongruentni 1 mod M pro vsechna p v PF
+            if (power(r, phi / p, M) == 1) {
+                valid_root = true;
+                break;
+            }
+        }
+        if (!valid_root)
+            return r;
+    }
+}
+
 
 
 ///    ######################
@@ -93,55 +169,37 @@ int main() {
     ulli M_max; uint D;
     cin >> M_max >> D;
 
-    vector<uint> p_under_D = get_p_under_D(D);
-    vector<uint> p_under_sqrt = sift_under_sqrt(M_max);
-    ulli count = p_under_sqrt.size();
+    // nehodici se roots se musi smazat uz z PUR
+    uint subtract = 0;
+    vector<uint> p_under_sqrt = sift_under_sqrt(M_max, D, subtract);
+    ulli count = p_under_sqrt.size() - subtract; // dvojka nema generator
+    ulli R = 0;
     uint last_prime = p_under_sqrt[p_under_sqrt.size() - 1];
 
-    /// per candidate M: M-1 |? PF()>D
+    /// generujme prime-kandidaty (M) inkrementaci od posledniho prime
     for (ulli M = last_prime + 1; M < M_max; ++M) {
         bool is_prime = true;
-        bool ok_root = true;
-        vector<ulli> PF;
-//        vector<uint> more_primes = ( p_under_sqrt.size() > p_under_D.size() ) ? p_under_sqrt : p_under_D;
 
-        /// iteruj do p_under_D/p_under_sqrt - podle toho co je delsi
-        for (auto p : p_under_sqrt) { // TODO: kdyz PUR neobsahuje primes do D? nebo nad D?
-            ulli R_res = (M-1) % p;
+        // zkontrolujeme zda M-1 muze byt vhodny root
+        // vhodny root ma cleny v PF mensi nez D
+        set<ulli> PF = get_prime_factors_under_D(D, M-1);
+        if(PF.empty()) continue; // pokud M-1 deli prime vetsi nez D, vracime empty set
+
+        for (auto p : p_under_sqrt) {
+            /// M je prime <=> M%p != 0
             ulli M_res = M % p;
-
-            /// alespon jedno p <= D musi delit M-1
-            if(p > D && PF.empty()) {
-                ok_root = false;
-                break;
-            }
-
-            /// p nesmi delit M aby M byl prime,
             if (M_res == 0) {
                 is_prime = false;
                 break;
             }
-
-            /// p > D NESMI delit M-1
-            if(R_res == 1 && p > D) {
-                ok_root = false;
-                break;
-            }
-            else if(R_res == 0) {
-                if(p <= D) {
-                    PF.push_back(p);
-                }
-                else if(p > D) {
-                    ok_root = false;
-                    break;
-                }
-            }
         }
-        if (is_prime && ok_root) {
+        if (is_prime) {
+            if(DBG_PRINT) cout << count <<"-Next prime: " << M;
+            R = max(R, get_root(M, PF));
+            print_set(PF, "   pf");
             count++;
-            if (DBG_PRINT) cout << "Prime with root: " << M << endl;
-            get_root();
         }
     }
     print_vec(p_under_sqrt, "PUR");
+    cout << count << " " << R << endl;
 }
