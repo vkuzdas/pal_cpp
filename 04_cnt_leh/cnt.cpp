@@ -58,16 +58,6 @@ set<ulli> get_prime_factors_under_D(uint D, ulli n) {
     return pf;
 }
 
-/// D je z rozsahu <3,40>
-vector<uint> get_p_under_D(uint D) {
-    vector<uint> ps_under_DMAX{2,3,5,7,11,13,17,19,23,29,31,37};
-    if(D>=37) return ps_under_DMAX;
-    for (uint i = 0; i < ps_under_DMAX.size(); ++i) {
-        if (D < ps_under_DMAX[i])
-            return vector<uint>(ps_under_DMAX.begin(),ps_under_DMAX.begin()+i);
-    }
-    return {};
-}
 
 // zaroven musime spocitat ktera cisla z techto obsahuji PF < D
 vector<uint> sift_under_sqrt(ulli n, uint D, uint& subtract) {
