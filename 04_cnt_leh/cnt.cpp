@@ -7,6 +7,7 @@
 #include <cmath>
 #include <chrono>
 #include <set>
+#include <algorithm>
 
 using namespace std;
 using uint = unsigned int;
@@ -29,7 +30,7 @@ void print_vec(vector<S> &v, const string &name) {
     cout << "]\n";
 }
 template <typename S>
-void print_set(set<S> &s, const string &name) {
+void print_set(const set<S> &s, const string &name) {
     if(!DBG_PRINT) return;
     setbuf(stdout, nullptr);
     cout << name << "=[";
@@ -40,7 +41,7 @@ void print_set(set<S> &s, const string &name) {
 }
 
 /// toto by mozna slo zrychlit pokud bych rovnou spocital i nasobky tohoto cisla ?
-set<ulli> get_prime_factors_under_D(uint D, ulli n) {
+set<ulli> get_prime_factors_under_D(const uint D, ulli n) {
     set<ulli> pf;
     ulli prime = 2;
     while(n > 1) {
@@ -60,12 +61,12 @@ set<ulli> get_prime_factors_under_D(uint D, ulli n) {
 
 
 // zaroven musime spocitat ktera cisla z techto obsahuji PF < D
-vector<uint> sift_under_sqrt(ulli n, uint D, uint& subtract) {
+vector<uint> sift_under_sqrt(const ulli n, const uint D, uint& subtract) {
     // staci nam cisla do sqrt(M_max)
     std::chrono::time_point<std::chrono::system_clock> start, end;
     start = std::chrono::system_clock::now();
 
-    uint limit = (uint)sqrt(n);
+    const uint limit = (uint)sqrt(n);
     vector<bool> A(limit+1, true);
     for (uint i = 2; i <= limit; ++i) {
         if(A[i]) {
@@ -114,7 +115,7 @@ vector<uint> sift_under_sqrt(ulli n, uint D, uint& subtract) {
     // base = 2*2%7 = 4, exp/2(2)
     // base = 4*4%7 = 2, exp/2(1)
     // rslt = 6*2%7 = 5, exp--(0)
-ulli power(ulli base, ulli exp, ulli mod) {
+ulli power(ulli base, ulli exp, const ulli mod) {
     ulli rslt = 1;
     while (exp > 0) {
         if (exp % 2 == 1) { // exponent je lichy
@@ -131,7 +132,7 @@ ulli power(ulli base, ulli exp, ulli mod) {
 }
 
 
-ulli get_root(ulli M, set<ulli>& PF) {
+ulli get_root(const ulli M, const set<ulli>& PF) {
     ulli phi = M-1;
     for (ulli r = 2; r <= phi; r++) {
         bool valid_root = false;
@@ -147,6 +148,31 @@ ulli get_root(ulli M, set<ulli>& PF) {
     }
 }
 
+#include<iostream>
+#include<stdint.h>
+
+int gcd(int m, int n) {
+    while (true) {
+        int r = m % n;
+        if (r == 0) {
+            return n;
+        }
+        m = n;
+        n = r;
+    }
+}
+
+#define min(a,b) (a<b?a:b)
+#define abs(x,y) (x > y? x - y : y - x)
+
+ulli f(ulli y, ulli c, ulli n) {
+    y = (y * y) % n;
+    y += c;
+    if (y < c)
+        y += (std::numeric_limits<ulli>::max() - n) + 1;
+    y %= n;
+    return y;
+}
 
 
 ///    ######################
@@ -164,10 +190,10 @@ int main() {
     vector<uint> p_under_sqrt = sift_under_sqrt(M_max, D, subtract);
     ulli count = p_under_sqrt.size() - subtract; // dvojka nema generator
     ulli R = 0;
-    uint last_prime = p_under_sqrt[p_under_sqrt.size() - 1];
+    const uint last_prime = p_under_sqrt[p_under_sqrt.size() - 1];
 
     /// generujme prime-kandidaty (M) inkrementaci od posledniho prime
-    for (ulli M = last_prime + 1; M < M_max; ++M) {
+    for (ulli M = last_prime + 2; M < M_max; M+=2) {
         bool is_prime = true;
 
         // zkontrolujeme zda M-1 muze byt vhodny root
