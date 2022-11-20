@@ -8,6 +8,7 @@
 #include <chrono>
 #include <set>
 #include <algorithm>
+#include <array>
 
 using namespace std;
 using uint = unsigned int;
@@ -16,7 +17,7 @@ using namespace std::chrono;
 
 
 
-const bool DBG_PRINT = false;
+const bool DBG_PRINT = true;
 
 
 template <typename S>
@@ -51,9 +52,7 @@ set<ulli> get_prime_factors_under_D(const uint D, ulli n) {
         }
         else {
             prime = prime + 1;
-            if (prime > D) {
-                return {};
-            }
+            if (prime > D) return {};
         }
     }
     return pf;
@@ -115,7 +114,7 @@ vector<uint> sift_under_sqrt(const ulli n, const uint D, uint& subtract) {
     // base = 2*2%7 = 4, exp/2(2)
     // base = 4*4%7 = 2, exp/2(1)
     // rslt = 6*2%7 = 5, exp--(0)
-ulli power(ulli base, ulli exp, const ulli mod) {
+ulli power_mod(ulli base, ulli exp, const ulli mod) {
     ulli rslt = 1;
     while (exp > 0) {
         if (exp % 2 == 1) { // exponent je lichy
@@ -132,13 +131,13 @@ ulli power(ulli base, ulli exp, const ulli mod) {
 }
 
 
-ulli get_root(const ulli M, const set<ulli>& PF) {
+uint get_root(const ulli M, const set<ulli>& PF) {
     ulli phi = M-1;
-    for (ulli r = 2; r <= phi; r++) {
+    for (uint r = 2; r <= phi; r++) {
         bool valid_root = false;
         for (ulli p : PF) {
             // validni root neni kongruentni 1 mod M pro vsechna p v PF
-            if (power(r, phi / p, M) == 1) {
+            if (power_mod(r, phi / p, M) == 1) {
                 valid_root = true;
                 break;
             }
@@ -146,32 +145,6 @@ ulli get_root(const ulli M, const set<ulli>& PF) {
         if (!valid_root)
             return r;
     }
-}
-
-#include<iostream>
-#include<stdint.h>
-
-int gcd(int m, int n) {
-    while (true) {
-        int r = m % n;
-        if (r == 0) {
-            return n;
-        }
-        m = n;
-        n = r;
-    }
-}
-
-#define min(a,b) (a<b?a:b)
-#define abs(x,y) (x > y? x - y : y - x)
-
-ulli f(ulli y, ulli c, ulli n) {
-    y = (y * y) % n;
-    y += c;
-    if (y < c)
-        y += (std::numeric_limits<ulli>::max() - n) + 1;
-    y %= n;
-    return y;
 }
 
 
@@ -189,7 +162,7 @@ int main() {
     uint subtract = 0;
     vector<uint> p_under_sqrt = sift_under_sqrt(M_max, D, subtract);
     ulli count = p_under_sqrt.size() - subtract; // dvojka nema generator
-    ulli R = 0;
+    uint R = 0;
     const uint last_prime = p_under_sqrt[p_under_sqrt.size() - 1];
 
     /// generujme prime-kandidaty (M) inkrementaci od posledniho prime
@@ -218,4 +191,62 @@ int main() {
     }
     print_vec(p_under_sqrt, "PUR");
     cout << count << " " << R << endl;
+}
+
+
+ulli power(uint x, uint exp) {
+    if (exp == 0)
+        return 1;
+
+    if (exp == 1)
+        return x;
+    ulli res = power(x, exp / 2);
+    //if power_mod is even
+    if (exp % 2 == 0)
+        return res * res;
+    else
+        return x * res * res; //if power_mod is odd
+}
+
+
+ulli M_produce(vector<uint>& primes, vector<uint>& exponents) {
+    ulli M = 1;
+    for (ulli i = 0; i < primes.size(); ++i) {
+        uint p = primes[i];
+        uint e = exponents[i];
+        ulli r = power(p, e);
+        M *= r;
+    }
+    return M;
+}
+
+
+void zero_out_exps(vector<uint>& exponents, uint from) {
+    for (uint i = from; i < exponents.size(); ++i) {
+        exponents[i] = 0;
+    }
+}
+
+int __main() {
+    vector<uint> primes{11,7,5,3,2};
+    ulli cap = 50000000000;
+
+    vector<uint> exponents(primes.size(),0);
+    uint incr_index = (uint)exponents.size()-1;
+    uint shift;
+    uint overflow_on_index;
+    while(1) {
+        ulli M = M_produce(primes, exponents);
+        if(M < cap) {
+            exponents[incr_index] += 1;
+            overflow_on_index = incr_index;
+        }
+        if(M >= cap) {
+            shift = exponents.size()-overflow_on_index;
+            if(incr_index < shift) break;
+            zero_out_exps(exponents, overflow_on_index);
+            exponents[incr_index-shift]++;
+            overflow_on_index = incr_index-shift;
+        }
+    }
 }
