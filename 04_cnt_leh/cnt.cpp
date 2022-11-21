@@ -41,7 +41,6 @@ void print_set(const set<S> &s, const string &name) {
     cout << "]\n";
 }
 
-/// toto by mozna slo zrychlit pokud bych rovnou spocital i nasobky tohoto cisla ?
 set<ulli> get_prime_factors_under_D(const uint D, ulli n) {
     set<ulli> pf;
     ulli prime = 2;
@@ -150,18 +149,18 @@ uint get_root(const ulli M, const vector<uint>& exponents, const vector<uint>& p
     }
 }
 
-ulli power(uint x, uint exp) {
+ulli power(uint base, uint exp) {
     if (exp == 0)
         return 1;
 
     if (exp == 1)
-        return x;
-    ulli res = power(x, exp / 2);
+        return base;
+    ulli res = power(base, exp / 2);
     // exp is even
     if (exp % 2 == 0)
         return res * res;
     else
-        return x * res * res; // exp is odd
+        return base * res * res; // exp is odd
 }
 
 
@@ -179,7 +178,8 @@ ulli M1_produce(vector<uint>& primes, vector<uint>& exponents) {
 
 void zero_out_exps(vector<uint>& exponents, uint from) {
     for (uint i = from; i < exponents.size(); ++i) {
-        exponents[i] = 0;
+        if(i == 0) exponents[i] = 1;
+        else exponents[i] = 0;
     }
 }
 
@@ -198,6 +198,18 @@ vector<uint> get_primes(uint D) {
     }
     vector<uint> primes(pd.begin(), pd.begin()+end);
     return primes;
+}
+
+bool is_prime(const ulli M, const vector<uint>& p_under_sqrt) {
+    bool is_prime = true;
+    for (auto p : p_under_sqrt) {
+        /// M je prime <=> M%p != 0
+        ulli M_res = M % p;
+        if (M_res == 0) {
+            return false;
+        }
+    }
+    return is_prime;
 }
 
 
@@ -219,25 +231,23 @@ int main() {
 
     vector<uint> p_under_D = get_primes(D);
 
-
     vector<uint> exponents(p_under_D.size(),0);
+    exponents[0] = 1;
     uint incr_index = (uint)exponents.size()-1;
     uint shift;
     uint overflow_on_index;
-    while(1) {
-        ulli M1 = M1_produce(p_under_D, exponents);
-        ulli M = M1+1;
+    while(true) {
+        const ulli M1 = M1_produce(p_under_D, exponents);
+        const ulli M = M1 + 1;
+        const ulli limit = (uint)sqrt(M_max);
+
         if(M < M_max) {
-            bool is_prime = true;
-            for (auto p : p_under_sqrt) {
-                /// M je prime <=> M%p != 0
-                ulli M_res = M % p;
-                if (M_res == 0) {
-                    is_prime = false;
-                    break;
-                }
+            if(M < limit){
+                exponents[incr_index] += 1;
+                overflow_on_index = incr_index;
+                continue;
             }
-            if (is_prime) {
+            if (is_prime(M, p_under_sqrt)) {
                 if(DBG_PRINT) cout << count <<"-Next prime: " << M;
                 R = max(R, get_root(M, exponents, p_under_D));
                 count++;
@@ -246,25 +256,26 @@ int main() {
             overflow_on_index = incr_index;
         }
         if(M >= M_max) {
-            shift = exponents.size()-overflow_on_index;
+            shift = (uint)exponents.size() - overflow_on_index;
             if(incr_index < shift) break;
             zero_out_exps(exponents, overflow_on_index);
             exponents[incr_index-shift]++;
             overflow_on_index = incr_index-shift;
         }
     }
-    print_vec(p_under_sqrt, "PUR");
     cout << count << " " << R << endl;
 }
 
 
 
 
-int __main() {
-    vector<uint> primes{2,3,5,7,11};
+int _main() {
+    // vzdy tam musi byt dvojka
+    vector<uint> primes{11,7,5,3,2};
     ulli cap = 50000000000;
 
     vector<uint> exponents(primes.size(),0);
+    exponents[exponents.size()-1] = 1;
     uint incr_index = (uint)exponents.size()-1;
     uint shift;
     uint overflow_on_index;
@@ -284,4 +295,5 @@ int __main() {
             overflow_on_index = incr_index-shift;
         }
     }
+    return 0;
 }
