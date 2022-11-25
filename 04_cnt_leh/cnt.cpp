@@ -102,6 +102,17 @@ vector<uint> sift_under_sqrt(const ulli n, const uint D, uint& subtract) {
     return primes;
 }
 
+
+// src: https://cw.felk.cvut.cz/forum/thread-6089.html
+ulli modulo_multiplication(ulli a, ulli b, ulli m) {
+    ulli a_hi = a >> 24, a_lo = a & ((1ll << 24) - 1ll);
+    ulli b_hi = b >> 24, b_lo = b & ((1ll << 24) - 1ll);
+    ulli result = ((((a_hi*b_hi << 16) % m) << 16) % m) << 16;
+    result += ((a_lo*b_hi+a_hi*b_lo) << 24) + a_lo*b_lo;
+    return result % m;
+}
+
+
 // normalne by se muselo nasobit exponent-krat zaklad
 // exponentiation by squaring ale dokaze proces zkratit na log(exp)-krat
 // pocita base^(exp) % mod v log(exp)
@@ -117,12 +128,12 @@ ulli power_mod(ulli base, ulli exp, const ulli mod) {
     ulli rslt = 1;
     while (exp > 0) {
         if (exp % 2 == 1) { // exponent je lichy
-            ulli tmp = rslt * base % mod;
+            ulli tmp = modulo_multiplication(rslt, base, mod);
             rslt = tmp;
             exp = exp - 1;
         }
         else { // exponent je sudy
-            base = base * base % mod;
+            base = modulo_multiplication(base, base, mod);
             exp = exp / 2;
         }
     }
