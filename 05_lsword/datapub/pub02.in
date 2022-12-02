@@ -1,0 +1,20 @@
+18 4
+ 0 F   a 1 2 3     b     c     d
+ 1 F   a 4         b 4   c     d
+ 2 F   a 4         b     c 4   d
+ 3 F   a 4         b     c     d 4
+ 4 F   a 5 6 7     b     c     d
+ 5 -   a 8         b 8   c     d
+ 6 -   a 8         b     c 8   d
+ 7 -   a 8         b     c     d 8
+ 8 -   a 9 10 11   b     c     d
+ 9 -   a 12        b 12  c     d
+10 -   a 12        b     c 12  d
+11 -   a 12        b     c     d 12
+12 -   a 13 14 15  b     c     d
+13 -   a 16        b 16  c     d
+14 -   a 16        b     c 16  d
+15 -   a 16        b     c     d 16
+16 -   a 17        b     c     d 17
+17 F   a           b     c     d
+aba

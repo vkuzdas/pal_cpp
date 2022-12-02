@@ -1,0 +1,14 @@
+12 4
+ 0 -     a  1  4   b      c  1   d      
+ 1 -     a  5      b      c  2   d  2   
+ 2 -     a  3      b  6   c  3   d      
+ 3 F     a  7      b  7   c      d      
+ 4 -     a  5      b      c  5   d  8   
+ 5 -     a  4  6   b  9   c      d  6  9
+ 6 -     a         b      c  7   d  7 10
+ 7 F     a 11      b 11   c      d      
+ 8 -     a  8      b  9   c  9   d  4  9
+ 9 -     a         b 10   c 10   d      
+10 F     a 11      b 11   c      d      
+11 F     a  7      b  2   c  7   d      
+aba
