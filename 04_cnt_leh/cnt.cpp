@@ -17,7 +17,7 @@ using namespace std::chrono;
 
 
 
-const bool DBG_PRINT = false;
+const bool DBG_PRINT = true;
 
 
 template <typename S>
@@ -259,7 +259,7 @@ int main() {
                 continue;
             }
             if (is_prime(M, p_under_sqrt)) {
-                if(DBG_PRINT) cout << count <<"-Next prime: " << M;
+                if(DBG_PRINT) cout << R << "   " << count <<"-Next prime: " << M << endl;
                 R = max(R, get_root(M, exponents, p_under_D));
                 count++;
             }
