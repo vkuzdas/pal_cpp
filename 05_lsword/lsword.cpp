@@ -4,22 +4,29 @@
 
 #include <iostream>
 #include <vector>
-#include <cmath>
-#include <chrono>
 #include <set>
 #include <algorithm>
 #include <array>
 #include <queue>
 #include <climits>
 #include <sstream>
-#include <cstring>
+#include <stack>
 
 using namespace std;
 using uint = unsigned int;
 using ulli = unsigned long long int;
-using vs_pair = pair<vector<uint>,string>;
+using NFA = vector<vector<vector<uint>>>;
 
 const vector<char> from_int_char{'a','b','c','d','e'};
+
+
+// TODO: nemam tyhle informace nahodou uz nekde ulozeny?
+struct State_FSD{
+    vector<uint> from;  // parent uzlu
+    vector<char> str;   //
+    vector<uint> dist;
+    bool was_in_q;
+} ;
 
 
 bool is_abcde(string s) {
@@ -76,67 +83,103 @@ vector<vector<vector<uint>>> readNFA(uint N, uint M, vector<bool>& is_final) {
     return v;
 }
 
-vector<uint> BFS_step(vector<bool>& is_final, vector<vector<vector<uint>>>& nfa, vector<vs_pair>& found_seq, queue<uint>& q) {
-    uint curr = q.front(); q.pop(); // kdyz je curr 0 tak nemame zadne pary
-    vector<uint> final_states{};
-    for (uint i = 0; i < nfa[curr].size(); ++i) {
-
-        auto letter_edge = nfa[curr][i];
-        if (letter_edge.empty()) continue;
-
-        for (auto dest_state : letter_edge) { // a 1 2 3
-            q.push(dest_state);
-            if (is_final[dest_state]) final_states.push_back(dest_state);
-
-            if(curr == 0) { // inicialni pruchod teprve "zaklada" pary
-                vector<uint> state_seq {dest_state};
-                string char_seq {from_int_char[i]};
-                pair<vector<uint>,string> new_pair = {state_seq, char_seq};
-                found_seq.push_back(new_pair);
+// projdi graf z candidate nodu zpet do start nodu
+// pismena na hrane davej do stacku
+// pokud ma hrana dve pismena, duplikuj stack
+// pokud ma uzel dva predky, duplikuj stack
+// nakonec stack popni, a zkontroluj vyskyt subtringu
+vector<string> backtrack_strings(vector<uint>& candidates, NFA& nfa, vector<State_FSD>& fsd_states, uint last_depth) {
+    vector<string> found;
+    // pro kazdy final node
+    for(uint c : candidates) {
+        uint curr_depth = last_depth;
+        vector<stack<uint>> stacks;
+        pair<uint, uint> node_stack;
+        queue<uint> q;
+        q.push(c);
+        while(!q.empty()) {
+            State_FSD curr = fsd_states[q.front()]; q.pop();
+            vector<uint> neighbors;
+            for (uint i = curr.dist.size(); i >= 0; --i) {
+                if(curr.dist[i] == curr_depth)
+                    neighbors.push_back(curr.from[i]);
+                else
+                    break; // vice uzlu s curr_depth tam neni
             }
 
-            // else: najdi par kterej ma sekvenci koncici curr TODO: hash-mapa?
-            // pust z nej dalsi krok BFS a pridej dalsi pary
-///            else {}  musime appendovat do vytvorenych paru
-            else{
-                for (uint j = 0; j < found_seq.size(); ++j) {
-                    vs_pair pair = found_seq[j];
-                    vector<uint> state_seq = pair.first;
-                    uint last_state = state_seq[state_seq.size()-1];
-                    if(last_state == curr) {
-                        found_seq[i].first.push_back(dest_state);
-                        found_seq[i].second.push_back(from_int_char[i]);
-                    }
-                }
-            }
         }
     }
-    return final_states;
 }
 
 
 int main() {
     uint N, M;   // N = pocet stavu, M = velikost abecedy
     cin >> N >> M;
-
-    string e;getline(cin, e); /// read empty line
+    /// read empty line
+    string e; getline(cin, e);
 
     vector<bool> is_final(N, false);
-    vector<vector<vector<uint>>> nfa;
-    nfa = readNFA(N, M, is_final);
+    NFA nfa = readNFA(N, M, is_final);
+
     string S;
     getline(cin, S);
 
-//    vector<pair<vector<uint>,string>> found_seq;
-//    queue<uint> q;
-//    q.push(0); // zaciname od stavu 0
-//    // iteruj BFS step dokud nenajdes final stav
-//    // po tom co najdes final stav, zkontroluj sekvenci hran KMPckem / Boyer Moorem
-//    while(!q.empty()) {
-//        /// chceme znat nalezene finalni stavy
-//        /// sekvence stavu koncici finalnim stavem znaci moznost kontroly stringu KMPckem
-//        vector<uint> found_final_states = BFS_step(is_final, nfa, found_seq, q);
-//    }
+
+
+    // NFA reprezentovane grafem projdeme BFS
+    // s kazdou 'vlnou' ulozime do uzlu informace FSD
+
+    /// init vsech FSD nodu
+    State_FSD sf;
+    sf.dist={};
+    sf.str={};
+    sf.from={};
+    vector<State_FSD> fsd_states(N, sf);
+
+    /// init start stavu
+    fsd_states[0].dist.push_back(0);
+    fsd_states[0].from.push_back(UINT_MAX);
+    fsd_states[0].str.push_back('N');
+    fsd_states[0].was_in_q = false;
+
+    // zaciname od start stavu
+    queue<uint> q; q.push(0);
+
+    vector<uint> candidates;
+    uint last_depth = 0;
+    while(!q.empty()) {
+        uint curr = q.front(); q.pop();
+        uint curr_depth = fsd_states[curr].dist[0]; // BFS garantuje ze prvni dist je nejblizsi ke startu
+
+
+        /// v pripade ze prejdu z hloubky X na hloubku X+1
+        /// chci zkontrolovat zda v hloubce X neexistuji final stavy
+        /// pokud existovali, chci z techto stavu zkusit matchnout hledany substring
+        if(curr_depth != last_depth && !candidates.empty()) {
+            cout << "KMP check";
+            vector<string> c = backtrack_strings(candidates, nfa, fsd_states, last_depth);
+        }
+
+        /// kazda hrana
+        for (uint edge = 0; edge < nfa[curr].size(); ++edge) { //
+            char letter = from_int_char[edge];
+            vector<uint> dest_states = nfa[curr][edge];
+            /// kazdy soused
+            for (uint state : dest_states) {
+                fsd_states[state].from.push_back(curr);
+                fsd_states[state].str.push_back(letter);
+                fsd_states[state].dist.push_back(curr_depth + 1);
+                if(!fsd_states[state].was_in_q)
+                    q.push(state);
+            }
+        }
+
+        if (is_final[curr]) {
+            candidates.push_back(curr);
+        }
+        last_depth = curr_depth;
+    }
+
     cout << "OK" << endl;
 
     return 0;
