@@ -16,10 +16,12 @@ using namespace std;
 using uint = unsigned int;
 using ulli = unsigned long long int;
 using NFA = vector<vector<vector<uint>>>;
+using ld_pair = pair<char, uint>;
 
 struct State {
     uint id;
     string path;
+    vector<uint> from_candidates;
     uint S_match;
 };
 
@@ -48,7 +50,7 @@ vector<vector<uint>> readLine(uint curr_N, uint N, uint M, vector<bool>& is_fina
     getline(iss, final_str, ' ');
     is_final[uint(curr_state)] = final_str[0] == 'F';
 
-
+    vector<ld_pair> adj{M};
     vector<vector<uint>> edge_dest{M};
 
 
@@ -62,6 +64,7 @@ vector<vector<uint>> readLine(uint curr_N, uint N, uint M, vector<bool>& is_fina
         } else {
             uint dest_state = uint(stoi(token));
             edge_dest[uint(subvec_index)].push_back(dest_state);
+
         }
     }
     return edge_dest;
@@ -110,20 +113,26 @@ int main() {
     for (uint i = 0; i < N; ++i) {
         State s;
         s.path="";
+        s.from_candidates={};
         s.S_match=0;
         s.id=i;
         states.push_back(s);
     }
 
-    vector<bool> in_Q(N,false);
-    queue<uint> Q;
-    Q.push(0);
-    in_Q[0] = true;
+    queue<vector<uint>> Q;
+    Q.push({0});
+
 
     while(!Q.empty()) {
         State curr = states[Q.front()];
+        vector<uint> states = Q.front();
         Q.pop();
-        in_Q[curr.id] = false;
+
+        // pro vsechny curr_stavy musim zjistit vsechny destinace
+        // do destinace musim vybrat nejkratsi cestu
+        vector<pair<uint, vector<char>>> v;
+
+
         /// pro kazdej edge
         for (uint e = 0; e < nfa[curr.id].size(); ++e) {
             char edge = from_int_char[e];
@@ -164,10 +173,7 @@ int main() {
                 states[id] = neigh;
                 /// pokud je cesta mensi nebo rovna
                 /// uz jsme uzel zpracovali nejlepsi cestou
-                if(!in_Q[neigh.id]) {
-                    Q.push(neigh.id);
-                    in_Q[neigh.id] = true;
-                }
+                Q.push(neigh.id);
             }
         }
     }

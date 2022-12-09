@@ -134,6 +134,7 @@ vector<int> bfs(vector<vector<int>> &adj) {
     for (int startV = 0; startV < adj.size(); ++startV) { // pro uzly v grafu
         if (inSet(seen, startV)) continue;
         queue<int> q({startV});
+
         while (!q.empty()) { // pro uzly na stacku
             int curr = q.front();
             q.pop();
