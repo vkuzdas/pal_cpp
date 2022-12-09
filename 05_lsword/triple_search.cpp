@@ -18,10 +18,16 @@ using ulli = unsigned long long int;
 using NFA = vector<vector<vector<uint>>>;
 using ld_pair = pair<char, uint>; // <letter & destination>
 
+bool lex_cmp(string n, string c);
+
 struct State {
     uint id;
     string path;
     vector<uint> sequence{};
+
+    bool operator < (const State& st) const {
+        return lex_cmp(path, st.path);
+    }
 };
 
 
@@ -92,6 +98,7 @@ vector<vector<ld_pair>> readNFA(uint N, vector<bool>& is_final, vector<uint>& fi
  */
 bool lex_cmp(string n, string c) {
     // vraci true kdyz n je less
+    if(c.size() < n.size()) return true;
     if(n.size() < c.size()) return false;
     return lexicographical_compare(c.begin(),c.end(), n.begin(),n.end());
 }
@@ -200,7 +207,11 @@ vector<vector<ld_pair>> reverse_nfa(vector<vector<ld_pair>> nfa) {
 }
 
 
-vector<vector<uint>> DFS_substring(vector<vector<ld_pair>>& nfa, vector<uint>& start_nodes, string& S) {
+void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
+                                        string& S, vector<vector<uint>>& collector) {
+    vector<vector<uint>> sequences;
+
+    // inituj vsechny nody
     vector<State> states;
     for (uint i = 0; i < nfa.size(); ++i) {
         State s;
@@ -209,21 +220,40 @@ vector<vector<uint>> DFS_substring(vector<vector<ld_pair>>& nfa, vector<uint>& s
         states.push_back(s);
     }
 
-    stack<uint> ST;
-    for(auto node : start_nodes) {
-        ST.push(node);
-        states[node].path = S[0]; // protoze uz vime ze maj prvni char
+    queue<uint> Q;
+    Q.push(start);
+
+    while(!Q.empty()) {
+        uint curr = Q.front(); Q.pop();
+        State curr_state = states[curr];
+        if (curr_state.path.size() == S.size())  {
+            curr_state.sequence.push_back(curr_state.id);
+            sequences.push_back(curr_state.sequence);
+        }
+
+        for (ld_pair pair : nfa[curr]) {
+            char edge = pair.first;
+            State neig_state = states[pair.second];
+
+            // pokud curr.path ma size 2, potrebujeme checknout edge = S[2]
+            char expected = S[curr_state.path.size()];
+            if(edge != expected) continue; /// neshoda -> nebudeme pushovat
+            else { // edge == expected
+                neig_state.path = curr_state.path + edge;
+                neig_state.sequence = curr_state.sequence;
+                neig_state.sequence.push_back(curr_state.id);
+            }
+            /// else { uz tam nejlepsi cesta je }
+            states[neig_state.id] = neig_state;
+            Q.push(neig_state.id);
+        }
     }
 
-    vector<bool> visited;
-    while (!ST.empty()) {
-        uint curr = ST.top(); ST.pop();
-
-
+    for (const auto& seq : sequences) {
+        collector.push_back(seq);
     }
-
-    return vector<vector<uint>>();
 }
+
 
 
 int main() {
@@ -260,13 +290,26 @@ int main() {
     }
 
     // 3) vsechny sekvence kde je S
-//    vector<vector<uint>> S_sequences = DFS_substring(nfa, start_char_nodes, S);
-//    S_sequences
+    vector<vector<uint>> S_sequences; // collector
+    for (auto node : start_char_nodes) {
+        BFS_substring_from(nfa, node, S, S_sequences);
+    }
 
+    // 4) pro vsechny sekvence najit nejkratsi konce a zacatek
+//    sort(states_from_start.begin(), states_from_start.end());
+//    sort(states_from_end.begin(), states_from_end.end());
 
-    cout << "ok";
+    string min="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+    for(auto seq : S_sequences) {
+        uint f = seq[0];
+        uint l = seq[seq.size()-1];
+        string b = states_from_start[f].path;
+        string e = states_from_end[l].path;
+        string res = b.append(S).append(e);
+        if (lex_cmp(min, res)) min = res;
+    }
 
-
+    cout << min;
 }
 
 
