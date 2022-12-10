@@ -228,10 +228,7 @@ void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
     while(!Q.empty()) {
         uint curr = Q.front(); Q.pop();
         State curr_state = states[curr];
-//        printf("pop %d, curr_path.s=%d, seq.size=%d\n", curr, curr_state.path.size(), sequences.size());
-        if(sequences.size()==1998) { //pop 138, curr_path.s=10, seq.size=1998
-//            cout << "bug";
-        }
+//        printf("start=%d    pop %d, curr_path.s=%d, seq.size=%d\n", start, curr, curr_state.path.size(), sequences.size());
         if (curr_state.path.size() == S.size())  {
             curr_state.sequence.push_back(curr_state.id);
             sequences.push_back(curr_state.sequence);
@@ -315,8 +312,6 @@ int main() {
     }
 
     // 4) pro vsechny sekvence najit nejkratsi konce a zacatek
-//    sort(states_from_start.begin(), states_from_start.end());
-//    sort(states_from_end.begin(), states_from_end.end());
 
 //    cout << "kombinace" << endl;
     string min="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
