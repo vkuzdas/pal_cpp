@@ -11,6 +11,7 @@
 #include <climits>
 #include <sstream>
 #include <stack>
+#include <chrono>
 
 using namespace std;
 using uint = unsigned int;
@@ -120,7 +121,7 @@ vector<State> BFS_from_start(vector<vector<ld_pair>> nfa) {
 
     queue<uint> Q;
     Q.push(0);
-
+    int c = 1;
     vector<bool> visited(nfa.size(), false);
     while(!Q.empty()) {
         uint curr = Q.front(); Q.pop();
@@ -151,8 +152,9 @@ vector<State> BFS_from_start(vector<vector<ld_pair>> nfa) {
  * final stavu do vsech ostatnich stavu
  * zaroven evidovat nejlepsi string spolu se sekvenci
  */
-vector<State> BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<uint>& finals) {
+vector<State> BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<uint>& finals, vector<bool>& is_final) {
     // inituj vsechny nody
+    // zaznam na uzlu rika jakou cestou se nejlepe lexikograficky dostanes do final stavu
     vector<State> states;
     for (uint i = 0; i < r_nfa.size(); ++i) {
         State s;
@@ -171,11 +173,11 @@ vector<State> BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<uint>& finals) 
         if (visited[curr]) continue;
         visited[curr] = true;
         State curr_state = states[curr];
-
         for (uint p = 0; p < r_nfa[curr].size(); ++p) {
             ld_pair pair = r_nfa[curr][p];
             char edge = pair.first;
             State neig_state = states[pair.second];
+            if(is_final[neig_state.id]) continue; /// nejblizsi cesta z finalu do finalu je sam do sebe
             bool found_better = lex_cmp(neig_state.path, edge + curr_state.path);
             if(neig_state.path.empty() || found_better) {
                 neig_state.path = edge + curr_state.path;
@@ -226,9 +228,14 @@ void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
     while(!Q.empty()) {
         uint curr = Q.front(); Q.pop();
         State curr_state = states[curr];
+//        printf("pop %d, curr_path.s=%d, seq.size=%d\n", curr, curr_state.path.size(), sequences.size());
+        if(sequences.size()==1998) { //pop 138, curr_path.s=10, seq.size=1998
+//            cout << "bug";
+        }
         if (curr_state.path.size() == S.size())  {
             curr_state.sequence.push_back(curr_state.id);
             sequences.push_back(curr_state.sequence);
+            continue;
         }
 
         for (ld_pair pair : nfa[curr]) {
@@ -270,13 +277,24 @@ int main() {
     getline(cin, S);
 
 
+    std::chrono::time_point<std::chrono::system_clock> start, end;
+    start = std::chrono::system_clock::now();
+
+
+
+
     // 1) nejkratsi cestu do vsech nodu
+//    cout << "doing bfs from start" << endl;
     vector<State> states_from_start = BFS_from_start(nfa);
+
     // 2) nejkratsi cesta ze vsech nodu do end nodu
     vector<vector<ld_pair>> r_nfa = reverse_nfa(nfa);
-    vector<State> states_from_end = BFS_from_end(r_nfa, finals);
+//    cout << "doing bfs from end" << endl;
+    vector<State> states_from_end = BFS_from_end(r_nfa, finals, is_final);
 
-
+    end = std::chrono::system_clock::now();
+    std::chrono::duration<double> elapsed_seconds = end - start;
+//    cout << "1) & 2) steps took " << elapsed_seconds.count() << "ms\n";
 
     vector<uint> start_char_nodes;
     for (uint s = 0; s < nfa.size(); ++s) {
@@ -290,6 +308,7 @@ int main() {
     }
 
     // 3) vsechny sekvence kde je S
+//    cout << "gde S" << endl;
     vector<vector<uint>> S_sequences; // collector
     for (auto node : start_char_nodes) {
         BFS_substring_from(nfa, node, S, S_sequences);
@@ -299,6 +318,7 @@ int main() {
 //    sort(states_from_start.begin(), states_from_start.end());
 //    sort(states_from_end.begin(), states_from_end.end());
 
+//    cout << "kombinace" << endl;
     string min="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     for(auto seq : S_sequences) {
         uint f = seq[0];
@@ -309,7 +329,7 @@ int main() {
         if (lex_cmp(min, res)) min = res;
     }
 
-    cout << min;
+    cout << min << endl;
 }
 
 
