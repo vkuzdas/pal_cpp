@@ -121,20 +121,18 @@ vector<State> init_states(size_t size) {
  * zaroven evidovat nejlepsi string spolu se sekvenci
  */
 vector<State> BFS_from_start(vector<vector<ld_pair>> nfa) {
-    // inituj vsechny nody
-    vector<State> states = init_states(nfa.size());
 
-    queue<uint> Q;
-    Q.push(0);
+    vector<State> states = init_states(nfa.size());
     vector<bool> visited(nfa.size(), false);
+    queue<uint> Q;
+
+    Q.push(0);
+    visited[0] = true;
+
     while(!Q.empty()) {
         uint curr = Q.front(); Q.pop();
-        if (visited[curr]) continue;
-        visited[curr] = true;
         State curr_state = states[curr];
-
-        for (uint p = 0; p < nfa[curr].size(); ++p) {
-            ld_pair pair = nfa[curr][p];
+        for (auto pair : nfa[curr]) {
             char edge = pair.first;
             State neig_state = states[pair.second];
             bool found_better = lex_cmp(neig_state.path, curr_state.path + edge);
@@ -147,8 +145,10 @@ vector<State> BFS_from_start(vector<vector<ld_pair>> nfa) {
             states[neig_state.id] = neig_state;
             if (visited[neig_state.id]) continue;
             Q.push(neig_state.id);
+            visited[neig_state.id] = true;
         }
     }
+    states[0].path = "";
     return states;
 }
 
@@ -171,8 +171,7 @@ vector<State> BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<uint>& finals, 
         if (visited[curr]) continue;
         visited[curr] = true;
         State curr_state = states[curr];
-        for (uint p = 0; p < r_nfa[curr].size(); ++p) {
-            ld_pair pair = r_nfa[curr][p];
+        for (auto pair : r_nfa[curr]) {
             char edge = pair.first;
             State neig_state = states[pair.second];
             if(is_final[neig_state.id]) continue; /// nejblizsi cesta z finalu do finalu je sam do sebe
@@ -207,20 +206,17 @@ vector<vector<ld_pair>> reverse_nfa(vector<vector<ld_pair>> nfa) {
 }
 
 
-void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
+void DFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
                                         string& S, vector<vector<uint>>& collector) {
+
     vector<vector<uint>> sequences;
-
-    // inituj vsechny nody
     vector<State> states = init_states(nfa.size());
+    queue<uint> Q;
+    Q.push(start);
 
-    stack<uint> ST;
-    ST.push(start);
-
-    while(!ST.empty()) {
-        uint curr = ST.top(); ST.pop();
+    while(!Q.empty()) {
+        uint curr = Q.front(); Q.pop();
         State curr_state = states[curr];
-//        printf("start=%d    pop %d, curr_path.s=%d, seq.size=%d\n", start, curr, curr_state.path.size(), sequences.size());
         if (curr_state.path.size() == S.size())  {
             curr_state.sequence.push_back(curr_state.id);
             sequences.push_back(curr_state.sequence);
@@ -241,7 +237,7 @@ void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
             }
             /// else { uz tam nejlepsi cesta je }
             states[neig_state.id] = neig_state;
-            ST.push(neig_state.id);
+            Q.push(neig_state.id);
         }
     }
 
@@ -253,6 +249,7 @@ void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
 
 
 int main() {
+    bool DEBUG = false;
     uint N, M;   // N = pocet stavu, M = velikost abecedy
     cin >> N >> M;
     string empty;
@@ -269,10 +266,12 @@ int main() {
     vector<vector<ld_pair>> r_nfa = reverse_nfa(nfa);
     vector<State> states_from_end = BFS_from_end(r_nfa, finals, is_final);
 
-    for(auto node : states_from_start) {
-        cout << node.id << endl;
-        cout << " - FROM START:" << node.path << endl;
-        cout << " - TO END:" << node.path << endl;
+    if(DEBUG){
+        for (uint i = 0; i < states_from_start.size(); ++i) {
+            cout << i << endl;
+            cout << " - FROM START:" << states_from_start[i].path << endl;
+            cout << " - TO END:" << states_from_end[i].path << endl;
+        }
     }
 
     vector<uint> start_char_nodes;
@@ -290,7 +289,7 @@ int main() {
 //    cout << "gde S" << endl;
     vector<vector<uint>> S_sequences; // collector
     for (auto node : start_char_nodes) {
-        BFS_substring_from(nfa, node, S, S_sequences);
+        DFS_substring_from(nfa, node, S, S_sequences);
     }
 
     // 4) pro vsechny sekvence najit nejkratsi konce a zacatek
@@ -298,6 +297,7 @@ int main() {
 //    cout << "kombinace" << endl;
     string min="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
     for(auto seq : S_sequences) {
+
         uint f = seq[0];
         uint l = seq[seq.size()-1];
         string b = states_from_start[f].path;
