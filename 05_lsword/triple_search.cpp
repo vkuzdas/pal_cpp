@@ -361,25 +361,28 @@ int main() {
     return 0;
 }
 
+bool l_cmp (string s1, string s2) {
+    return lexicographical_compare(s1.begin(), s1.end(), s2.begin(),
+        s2.end());
+}
 
 void DFS(vector<vector<Edge>> graph, string word, int start, int pos, Edge edge) {
 
     if (pos == (int)word.size() - 1) {
 
-        string current_result;
-        current_result.append(nodes_info[start].sequence_from_start);
-        current_result.append(word);
-        current_result.append(nodes_info[edge.to].sequence_to_end);
+        string curr_res;
+        curr_res.append(nodes_info[start].sequence_from_start);
+        curr_res.append(word);
+        curr_res.append(nodes_info[edge.to].sequence_to_end);
 
-        if (result_string.empty() || (int)current_result.size() < result_cost) {
-            result_string = current_result;
-            result_cost = (int) current_result.size();
-        } else if (current_result.size() == result_string.size()) {
+        if (result_string.empty() || (int)curr_res.size() < result_cost) {
+            result_string = curr_res;
+            result_cost = (int) curr_res.size();
+        } else if (curr_res.size() == result_string.size()) {
 
-            if (lexicographical_compare(current_result.begin(), current_result.end(), result_string.begin(),
-                                        result_string.end())) {
-                result_string = current_result;
-                result_cost = (int) current_result.size();
+            if (l_cmp(curr_res, result_string)) {
+                result_string = curr_res;
+                result_cost = (int) curr_res.size();
             }
         }
         return;
