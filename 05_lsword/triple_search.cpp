@@ -35,9 +35,6 @@ struct State {
     string path;
     vector<uint> sequence{};
 
-    bool operator < (const State& st) const {
-        return lex_cmp(path, st.path);
-    }
 };
 
 struct Node {
@@ -348,14 +345,14 @@ int main() {
         }
     }
 
-    char firstLetter = S[0];
 
     for(uint i = 0; i < N; i++) {
-        for(uint j = 0; j < graph[i].size(); j++) {
-            if (graph[i][j].letter == firstLetter) {
-                Node n = nodes_info[i];
-                if (((n.cost_from_start + max(n.cost_to_end, (int)S.size())) <= result_cost)) {
-                    DFS(graph, S, graph[i][j].from, 0, graph[i][j]);
+        for(uint j = 0; j < nfa[i].size(); j++) {
+            if (nfa[i][j].first == S[0]) {
+                auto s1 = states_from_start[i].path.size();
+                auto s2 = states_from_end[i].path.size();
+                if (((s1 + max(s2, S.size())) <= result_cost)) {
+                    DFS(graph, S, i, 0, graph[i][j]);
                 }
             }
         }
