@@ -21,6 +21,15 @@ using ld_pair = pair<char, uint>; // <letter & destination>
 
 bool lex_cmp(string n, string c);
 
+struct Edge {
+    int from;
+    int to;
+    char letter;
+
+    Edge(int f, int t, char l) : from(f), to(t), letter(l) {};
+
+};
+
 struct State {
     uint id;
     string path;
@@ -31,8 +40,18 @@ struct State {
     }
 };
 
+struct Node {
+    int cost_from_start = -1;
+    string sequence_from_start;
+    int cost_to_end = -1;
+    string sequence_to_end;
+};
 
-const vector<char> from_int_char{'a', 'b', 'c', 'd', 'e'};
+vector<Node> nodes_info;
+string result_string;
+int result_cost = INT32_MAX;
+
+void DFS(vector<vector<Edge>> graph, string word, int start, int pos, Edge edge);
 
 bool is_abcde(string s) {
     if(s[0]=='a' || s[0]=='b' || s[0]=='c' || s[0]=='d' || s[0]=='e')
@@ -247,9 +266,54 @@ void DFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
 }
 
 
+vector<uint> init_start_char_nodes(vector<vector<ld_pair>> nfa, char c) {
+    vector<uint> start_char_nodes;
+    for (uint s = 0; s < nfa.size(); ++s) {
+        for (uint n = 0; n < nfa[s].size(); ++n) {
+            ld_pair p = nfa[s][n];
+            if(p.first == c) {
+                start_char_nodes.push_back(s);
+                break; // staci jedna hrana
+            }
+        }
+    }
+}
+
+void DFS(vector<vector<ld_pair>> &nfa, string S, uint start, size_t pos, vector<State> &sfs, vector<State> &sfe, string& ans) {
+    // If we have reached the end of the word, we have found a valid path.
+    if (pos == S.size()) {
+        // Create a string representing the current path.
+        string current_result;
+        current_result.append(sfs[start].path);
+        current_result.append(S);
+        current_result.append(sfe[start].path);
+
+        // Check if the current path is better than the existing result.
+        if (ans.empty() || current_result.size() < ans.size()) {
+            // If the path is shorter or if there is no existing result, update the result.
+            ans = current_result;
+        } else if (current_result.size() == ans.size()) {
+            // If the path is the same length as the existing result, update the result if it is lexicographically smaller.
+            if (lexicographical_compare(current_result.begin(), current_result.end(), ans.begin(), ans.end())) {
+                ans = current_result;
+            }
+        }
+        return;
+    }
+
+    // Otherwise, continue exploring the graph.
+    for (ld_pair& edge : nfa[start]) {
+        // If the next letter in the word matches the edge we are currently exploring, continue down this path.
+        if (edge.first == S[pos]) {
+            // Check if the current path is worth exploring further.
+            if (sfs[start].path.size() + pos + sfe[edge.second].path.size() <= ans.size()) {
+                DFS(nfa, S, edge.second, pos + 1, sfs, sfe, ans);
+            }
+        }
+    }
+}
 
 int main() {
-    bool DEBUG = false;
     uint N, M;   // N = pocet stavu, M = velikost abecedy
     cin >> N >> M;
     string empty;
@@ -266,51 +330,76 @@ int main() {
     vector<vector<ld_pair>> r_nfa = reverse_nfa(nfa);
     vector<State> states_from_end = BFS_from_end(r_nfa, finals, is_final);
 
-    if(DEBUG){
-        for (uint i = 0; i < states_from_start.size(); ++i) {
-            cout << i << endl;
-            cout << " - FROM START:" << states_from_start[i].path << endl;
-            cout << " - TO END:" << states_from_end[i].path << endl;
+    vector<uint> start_char_nodes = init_start_char_nodes(nfa, S[0]);
+
+    for (uint i = 0; i < states_from_end.size(); ++i) {
+        Node n;
+        n.sequence_to_end = states_from_end[i].path;
+        n.cost_to_end = (int)states_from_end[i].path.size();
+        n.sequence_from_start = states_from_start[i].path;
+        n.cost_from_start = (int)states_from_start[i].path.size();
+        nodes_info.push_back(n);
+    }
+
+    vector<vector<Edge>> graph(N);
+    for (uint srcI = 0; srcI < nfa.size(); ++srcI) {
+        for (auto p : nfa[srcI]) {
+            graph[srcI].push_back(Edge(srcI, p.second, p.first));
         }
     }
 
-    vector<uint> start_char_nodes;
-    for (uint s = 0; s < nfa.size(); ++s) {
-        for (uint n = 0; n < nfa[s].size(); ++n) {
-            ld_pair p = nfa[s][n];
-            if(p.first == S[0]) {
-                start_char_nodes.push_back(s);
-                break; // staci jedna hrana
+    char firstLetter = S[0];
+
+    for(uint i = 0; i < N; i++) {
+        for(uint j = 0; j < graph[i].size(); j++) {
+            if (graph[i][j].letter == firstLetter) {
+                Node n = nodes_info[i];
+                if (((n.cost_from_start + max(n.cost_to_end, (int)S.size())) <= result_cost)) {
+                    DFS(graph, S, graph[i][j].from, 0, graph[i][j]);
+                }
             }
         }
     }
-
-    // 3) vsechny sekvence kde je S
-//    cout << "gde S" << endl;
-    vector<vector<uint>> S_sequences; // collector
-    for (auto node : start_char_nodes) {
-        DFS_substring_from(nfa, node, S, S_sequences);
-    }
-
-    // 4) pro vsechny sekvence najit nejkratsi konce a zacatek
-
-//    cout << "kombinace" << endl;
-    string min="ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-    for(auto seq : S_sequences) {
-
-        uint f = seq[0];
-        uint l = seq[seq.size()-1];
-        string b = states_from_start[f].path;
-        string e = states_from_end[l].path;
-        string res = b.append(S).append(e);
-        if (lex_cmp(min, res)) min = res;
-    }
-
-    cout << min << endl;
+    cout << result_string << endl;
+    return 0;
 }
 
 
+void DFS(vector<vector<Edge>> graph, string word, int start, int pos, Edge edge) {
 
+    if (pos == (int)word.size() - 1) {
+
+        string current_result;
+        current_result.append(nodes_info[start].sequence_from_start);
+        current_result.append(word);
+        current_result.append(nodes_info[edge.to].sequence_to_end);
+
+        if (result_string.empty() || (int)current_result.size() < result_cost) {
+            result_string = current_result;
+            result_cost = (int) current_result.size();
+        } else if (current_result.size() == result_string.size()) {
+
+            if (lexicographical_compare(current_result.begin(), current_result.end(), result_string.begin(),
+                                        result_string.end())) {
+                result_string = current_result;
+                result_cost = (int) current_result.size();
+            }
+        }
+        return;
+    }
+
+    for (int i = 0; i < (int)graph[edge.to].size(); i++) {
+        Edge e = graph[edge.to][i];
+        Node n = nodes_info[e.to]; // soused
+
+        if (e.letter == word[pos + 1]) {
+            if ((nodes_info[start].cost_from_start + pos+1 + max(n.cost_to_end, (int) word.size() - (pos+2))) <=
+                result_cost) {
+                DFS(graph, word, start, pos + 1, graph[edge.to][i]);
+            }
+        }
+    }
+}
 
 
 
