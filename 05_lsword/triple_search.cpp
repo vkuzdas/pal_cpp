@@ -105,23 +105,27 @@ bool lex_cmp(string n, string c) {
 }
 
 
+vector<State> init_states(size_t size) {
+    vector<State> states;
+    for (uint i = 0; i < size; ++i) {
+        State s;
+        s.path="";
+        s.id=i;
+        states.push_back(s);
+    }
+    return states;
+}
+
 /**
  * ze start stavu do vsech ostatnich stavu
  * zaroven evidovat nejlepsi string spolu se sekvenci
  */
 vector<State> BFS_from_start(vector<vector<ld_pair>> nfa) {
     // inituj vsechny nody
-    vector<State> states;
-    for (uint i = 0; i < nfa.size(); ++i) {
-        State s;
-        s.path="";
-        s.id=i;
-        states.push_back(s);
-    }
+    vector<State> states = init_states(nfa.size());
 
     queue<uint> Q;
     Q.push(0);
-    int c = 1;
     vector<bool> visited(nfa.size(), false);
     while(!Q.empty()) {
         uint curr = Q.front(); Q.pop();
@@ -155,13 +159,7 @@ vector<State> BFS_from_start(vector<vector<ld_pair>> nfa) {
 vector<State> BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<uint>& finals, vector<bool>& is_final) {
     // inituj vsechny nody
     // zaznam na uzlu rika jakou cestou se nejlepe lexikograficky dostanes do final stavu
-    vector<State> states;
-    for (uint i = 0; i < r_nfa.size(); ++i) {
-        State s;
-        s.path="";
-        s.id=i;
-        states.push_back(s);
-    }
+    vector<State> states = init_states(r_nfa.size());
 
     queue<uint> Q;
     for(auto node : finals)
@@ -214,19 +212,13 @@ void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
     vector<vector<uint>> sequences;
 
     // inituj vsechny nody
-    vector<State> states;
-    for (uint i = 0; i < nfa.size(); ++i) {
-        State s;
-        s.path="";
-        s.id=i;
-        states.push_back(s);
-    }
+    vector<State> states = init_states(nfa.size());
 
-    queue<uint> Q;
-    Q.push(start);
+    stack<uint> ST;
+    ST.push(start);
 
-    while(!Q.empty()) {
-        uint curr = Q.front(); Q.pop();
+    while(!ST.empty()) {
+        uint curr = ST.top(); ST.pop();
         State curr_state = states[curr];
 //        printf("start=%d    pop %d, curr_path.s=%d, seq.size=%d\n", start, curr, curr_state.path.size(), sequences.size());
         if (curr_state.path.size() == S.size())  {
@@ -249,7 +241,7 @@ void BFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
             }
             /// else { uz tam nejlepsi cesta je }
             states[neig_state.id] = neig_state;
-            Q.push(neig_state.id);
+            ST.push(neig_state.id);
         }
     }
 
@@ -273,25 +265,15 @@ int main() {
     string S;
     getline(cin, S);
 
-
-    std::chrono::time_point<std::chrono::system_clock> start, end;
-    start = std::chrono::system_clock::now();
-
-
-
-
-    // 1) nejkratsi cestu do vsech nodu
-//    cout << "doing bfs from start" << endl;
     vector<State> states_from_start = BFS_from_start(nfa);
-
-    // 2) nejkratsi cesta ze vsech nodu do end nodu
     vector<vector<ld_pair>> r_nfa = reverse_nfa(nfa);
-//    cout << "doing bfs from end" << endl;
     vector<State> states_from_end = BFS_from_end(r_nfa, finals, is_final);
 
-    end = std::chrono::system_clock::now();
-    std::chrono::duration<double> elapsed_seconds = end - start;
-//    cout << "1) & 2) steps took " << elapsed_seconds.count() << "ms\n";
+    for(auto node : states_from_start) {
+        cout << node.id << endl;
+        cout << " - FROM START:" << node.path << endl;
+        cout << " - TO END:" << node.path << endl;
+    }
 
     vector<uint> start_char_nodes;
     for (uint s = 0; s < nfa.size(); ++s) {
