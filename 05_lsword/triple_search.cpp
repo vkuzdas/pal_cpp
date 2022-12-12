@@ -11,7 +11,6 @@
 #include <climits>
 #include <sstream>
 #include <stack>
-#include <chrono>
 
 using namespace std;
 using uint = unsigned int;
@@ -21,14 +20,7 @@ using ld_pair = pair<char, uint>; // <letter & destination>
 
 bool lex_cmp(string n, string c);
 
-struct Edge {
-    int from;
-    int to;
-    char letter;
 
-    Edge(int f, int t, char l) : from(f), to(t), letter(l) {};
-
-};
 
 struct State {
     uint id;
@@ -37,18 +29,10 @@ struct State {
     vector<uint> sequence{};
 };
 
-struct Node {
-    uint cost_from_start = 0;
-    string sequence_from_start;
-    uint cost_to_end = 0;
-    string sequence_to_end;
-};
 
-vector<Node> nodes_info;
-string result_string;
-uint result_cost = UINT_MAX;
+string final_res(60000,'f');
 
-void DFS(vector<vector<ld_pair>>& nfa, string word, uint start, uint pos, ld_pair d_pair);
+void DFS(vector<vector<ld_pair>>& nfa, vector<State>& states, string word, uint start, uint pos, ld_pair d_pair);
 
 bool is_abcde(string s) {
     if(s[0]=='a' || s[0]=='b' || s[0]=='c' || s[0]=='d' || s[0]=='e')
@@ -274,6 +258,50 @@ vector<uint> init_start_char_nodes(vector<vector<ld_pair>> nfa, char c) {
     return start_char_nodes;
 }
 
+void DFS_iter(vector<vector<ld_pair>>& nfa, vector<State>& states, string word, uint start, uint pos, ld_pair d_pair) {
+    stack<pair<uint, ld_pair>> s;
+    s.push(make_pair(pos, d_pair));
+
+    while (!s.empty()) {
+        pair<uint, ld_pair> top = s.top();
+        s.pop();
+
+        uint curr_pos = top.first;
+        ld_pair curr_state = top.second;
+
+        // Pokud jsme na poslednim pismenu ve hledanem slovu,
+        // updatujeme result (pokud jsme nasli lepsi)
+        if (curr_pos == word.size() - 1) {
+            string b = states[start].path_from_start;
+            string e = states[curr_state.second].path_to_end;
+            string curr_res = b + word + e;
+
+            if (lex_cmp(final_res, curr_res)) {
+                final_res = curr_res;
+            }
+            return;
+        }
+
+        for (auto pair : nfa[curr_state.second]) {
+            State neighbor = states[pair.second];
+            char expected = word[curr_pos + 1];
+            if (pair.first == expected) {
+                size_t m1 = word.size() - (curr_pos + 2);
+                size_t m2 = neighbor.path_to_end.size();
+                size_t m = max(m1, m2);
+                size_t b_len = states[start].path_from_start.size();
+                size_t potential_len = b_len + curr_pos + 1 + m;
+                if (potential_len <= final_res.size()) {
+                    // Push the next state and position onto the stack
+                    s.push(make_pair(curr_pos + 1, pair));
+                }
+            }
+        }
+    }
+}
+
+
+
 
 int main() {
     uint N, M;   // N = pocet stavu, M = velikost abecedy
@@ -295,78 +323,50 @@ int main() {
 
     vector<uint> start_char_nodes = init_start_char_nodes(nfa, S[0]);
 
-    for (uint i = 0; i < states.size(); ++i) {
-        Node n;
-        n.sequence_to_end = states[i].path_to_end;
-        n.cost_to_end = (int)states[i].path_to_end.size();
-        n.sequence_from_start = states[i].path_from_start;
-        n.cost_from_start = (int)states[i].path_from_start.size();
-        nodes_info.push_back(n);
-    }
-
-    vector<vector<Edge>> graph(N);
-    for (uint srcI = 0; srcI < nfa.size(); ++srcI) {
-        for (auto p : nfa[srcI]) {
-            graph[srcI].push_back(Edge(srcI, p.second, p.first));
-        }
-    }
-
-
-    for(uint s = 0; s < N; s++) {
+    for(uint s = 0; s < nfa.size(); s++) {
         for(uint d = 0; d < nfa[s].size(); d++) {
             ld_pair d_pair = nfa[s][d];
             if (nfa[s][d].first == S[0]) {
-
-                uint b_len = (uint)states[s].path_from_start.size();
-                uint e_len = (uint)states[s].path_to_end.size();
-                uint m = max(e_len, (uint)S.size());
-                if (((b_len + m) <= result_cost)) {
-                    DFS(nfa, S, s, 0, d_pair);
+                size_t b_len = states[s].path_from_start.size();
+                size_t e_len = states[s].path_to_end.size();
+                size_t m = max(e_len, S.size());
+                if (((b_len + m) <= final_res.size())) {
+                    DFS_iter(nfa, states, S, s, 0, d_pair);
                 }
             }
         }
     }
-    cout << result_string << endl;
+
+    cout << final_res << endl;
     return 0;
 }
 
-bool l_cmp (string s1, string s2) {
-    return lexicographical_compare(s1.begin(), s1.end(), s2.begin(),
-        s2.end());
-}
 
-void DFS(vector<vector<ld_pair>>& nfa, string word, uint start, uint pos, ld_pair d_pair) {
+void DFS(vector<vector<ld_pair>>& nfa, vector<State>& states, string word, uint start, uint pos, ld_pair d_pair) {
 
+    uint curr = d_pair.second;
     if (pos == word.size() - 1) {
+        string b = states[start].path_from_start;
+        string e = states[curr].path_to_end;
+        string curr_res = b + word + e;
 
-        string curr_res;
-        string b = nodes_info[start].sequence_from_start;
-        string e = nodes_info[d_pair.second].sequence_to_end;
-        curr_res.append(b).append(word).append(e);
-
-        if (result_string.empty() || (int)curr_res.size() < result_cost) {
-            result_string = curr_res;
-            result_cost = (int) curr_res.size();
-        } else if (curr_res.size() == result_string.size()) {
-
-            if (l_cmp(curr_res, result_string)) {
-                result_string = curr_res;
-                result_cost = (int) curr_res.size();
-            }
+        if (lex_cmp(final_res, curr_res)) {
+            final_res = curr_res;
         }
         return;
     }
 
-    for (uint i = 0; i < nfa[d_pair.second].size(); i++) {
-        ld_pair next = nfa[d_pair.second][i];
-        Node n = nodes_info[next.second]; // soused
+    for(auto pair : nfa[curr]) {
+        State neighbor = states[pair.second];
+        char expected = word[pos + 1];
+        if (pair.first == expected) {
+            size_t m1 = word.size() - (pos+2);
+            size_t m2 = neighbor.path_to_end.size();
+            size_t m = max(m1, m2);
+            size_t b_len = states[start].path_from_start.size();
 
-        if (next.first == word[pos + 1]) {
-            auto m1 = (uint)word.size() - (pos+2);
-            auto m2 = (uint)n.cost_to_end;
-            auto m = max(m1, m2);
-            if ((nodes_info[start].cost_from_start + pos+1 + m) <= result_cost) {
-                DFS(nfa, word, start, pos + 1, nfa[d_pair.second][i]);
+            if ((b_len + pos+1 + m) <= final_res.size()) {
+                DFS(nfa, states, word, start, pos + 1, pair);
             }
         }
     }
