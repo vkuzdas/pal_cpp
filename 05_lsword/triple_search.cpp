@@ -48,7 +48,7 @@ vector<Node> nodes_info;
 string result_string;
 int result_cost = INT32_MAX;
 
-void DFS(vector<vector<Edge>> graph, string word, int start, int pos, Edge edge);
+void DFS(vector<vector<Edge>>& graph, string word, int start, int pos, ld_pair d_pair, vector<vector<ld_pair>>& nfa);
 
 bool is_abcde(string s) {
     if(s[0]=='a' || s[0]=='b' || s[0]=='c' || s[0]=='d' || s[0]=='e')
@@ -346,13 +346,16 @@ int main() {
     }
 
 
-    for(uint i = 0; i < N; i++) {
-        for(uint j = 0; j < nfa[i].size(); j++) {
-            if (nfa[i][j].first == S[0]) {
-                auto s1 = states_from_start[i].path.size();
-                auto s2 = states_from_end[i].path.size();
-                if (((s1 + max(s2, S.size())) <= result_cost)) {
-                    DFS(graph, S, i, 0, graph[i][j]);
+    for(uint s = 0; s < N; s++) {
+        for(uint d = 0; d < nfa[s].size(); d++) {
+            ld_pair d_pair = nfa[s][d];
+            if (nfa[s][d].first == S[0]) {
+
+                uint b_len = (uint)states_from_start[s].path.size();
+                uint e_len = (uint)states_from_end[s].path.size();
+                uint m = max(e_len, (uint)S.size());
+                if (((b_len + m) <= result_cost)) {
+                    DFS(graph, S, s, 0, d_pair, nfa);
                 }
             }
         }
@@ -366,14 +369,14 @@ bool l_cmp (string s1, string s2) {
         s2.end());
 }
 
-void DFS(vector<vector<Edge>> graph, string word, int start, int pos, Edge edge) {
+void DFS(vector<vector<Edge>>& graph, string word, int start, int pos, ld_pair d_pair, vector<vector<ld_pair>>& nfa) {
 
     if (pos == (int)word.size() - 1) {
 
         string curr_res;
-        curr_res.append(nodes_info[start].sequence_from_start);
-        curr_res.append(word);
-        curr_res.append(nodes_info[edge.to].sequence_to_end);
+        string b = nodes_info[start].sequence_from_start;
+        string e = nodes_info[d_pair.second].sequence_to_end;
+        curr_res.append(b).append(word).append(e);
 
         if (result_string.empty() || (int)curr_res.size() < result_cost) {
             result_string = curr_res;
@@ -388,14 +391,14 @@ void DFS(vector<vector<Edge>> graph, string word, int start, int pos, Edge edge)
         return;
     }
 
-    for (int i = 0; i < (int)graph[edge.to].size(); i++) {
-        Edge e = graph[edge.to][i];
+    for (int i = 0; i < (int)graph[d_pair.second].size(); i++) {
+        Edge e = graph[d_pair.second][i];
         Node n = nodes_info[e.to]; // soused
 
         if (e.letter == word[pos + 1]) {
             if ((nodes_info[start].cost_from_start + pos+1 + max(n.cost_to_end, (int) word.size() - (pos+2))) <=
                 result_cost) {
-                DFS(graph, word, start, pos + 1, graph[edge.to][i]);
+                DFS(graph, word, start, pos + 1, nfa[d_pair.second][i], nfa);
             }
         }
     }
