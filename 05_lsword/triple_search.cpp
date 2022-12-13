@@ -13,12 +13,7 @@
 
 using namespace std;
 using uint = unsigned int;
-using ulli = unsigned long long int;
-using NFA = vector<vector<vector<uint>>>;
 using ld_pair = pair<char, uint>; // <letter & destination>
-
-bool lex_cmp(string n, string c);
-
 
 
 struct State {
@@ -29,10 +24,7 @@ struct State {
 };
 
 
-string result_string(6000, 'f');
-uint result_cost = UINT_MAX;
-
-void DFS(vector<vector<ld_pair>>& nfa, vector<State>& states, string word, uint start, uint pos, ld_pair d_pair);
+string final_res(6000, 'f');
 
 bool is_abcde(string s) {
     if(s[0]=='a' || s[0]=='b' || s[0]=='c' || s[0]=='d' || s[0]=='e')
@@ -203,45 +195,45 @@ vector<vector<ld_pair>> reverse_nfa(vector<vector<ld_pair>> nfa) {
 }
 
 
-void DFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
-                        string& S, vector<vector<uint>>& collector) {
-
-    vector<vector<uint>> sequences;
-    vector<State> states = init_states(nfa.size());
-    queue<uint> Q;
-    Q.push(start);
-
-    while(!Q.empty()) {
-        uint curr = Q.front(); Q.pop();
-        State curr_state = states[curr];
-        if (curr_state.path_from_start.size() == S.size())  {
-            curr_state.sequence.push_back(curr_state.id);
-            sequences.push_back(curr_state.sequence);
-            continue;
-        }
-
-        for (ld_pair pair : nfa[curr]) {
-            char edge = pair.first;
-            State neig_state = states[pair.second];
-
-            // pokud curr.path ma size 2, potrebujeme checknout edge = S[2]
-            char expected = S[curr_state.path_from_start.size()];
-            if(edge != expected) continue; /// neshoda -> nebudeme pushovat
-            else { // edge == expected
-                neig_state.path_from_start = curr_state.path_from_start + edge;
-                neig_state.sequence = curr_state.sequence;
-                neig_state.sequence.push_back(curr_state.id);
-            }
-            /// else { uz tam nejlepsi cesta je }
-            states[neig_state.id] = neig_state;
-            Q.push(neig_state.id);
-        }
-    }
-
-    for (const auto& seq : sequences) {
-        collector.push_back(seq);
-    }
-}
+//void DFS_substring_from(vector<vector<ld_pair>>& nfa, uint start,
+//                        string& S, vector<vector<uint>>& collector) {
+//
+//    vector<vector<uint>> sequences;
+//    vector<State> states = init_states(nfa.size());
+//    queue<uint> Q;
+//    Q.push(start);
+//
+//    while(!Q.empty()) {
+//        uint curr = Q.front(); Q.pop();
+//        State curr_state = states[curr];
+//        if (curr_state.path_from_start.size() == S.size())  {
+//            curr_state.sequence.push_back(curr_state.id);
+//            sequences.push_back(curr_state.sequence);
+//            continue;
+//        }
+//
+//        for (ld_pair pair : nfa[curr]) {
+//            char edge = pair.first;
+//            State neig_state = states[pair.second];
+//
+//            // pokud curr.path ma size 2, potrebujeme checknout edge = S[2]
+//            char expected = S[curr_state.path_from_start.size()];
+//            if(edge != expected) continue; /// neshoda -> nebudeme pushovat
+//            else { // edge == expected
+//                neig_state.path_from_start = curr_state.path_from_start + edge;
+//                neig_state.sequence = curr_state.sequence;
+//                neig_state.sequence.push_back(curr_state.id);
+//            }
+//            /// else { uz tam nejlepsi cesta je }
+//            states[neig_state.id] = neig_state;
+//            Q.push(neig_state.id);
+//        }
+//    }
+//
+//    for (const auto& seq : sequences) {
+//        collector.push_back(seq);
+//    }
+//}
 
 
 vector<uint> init_start_char_nodes(vector<vector<ld_pair>> nfa, char c) {
@@ -257,6 +249,44 @@ vector<uint> init_start_char_nodes(vector<vector<ld_pair>> nfa, char c) {
     }
     return start_char_nodes;
 }
+
+/**
+ * Overall, the function performs a depth-first search on the input data,
+ * looking for the lexicographically smallest string that can be constructed
+ * by concatenating the path_from_start field of a State object, the word string,
+ * and the path_to_end field of another State object. It updates the final_res string
+ * with the smallest such string that it finds.
+ */
+void DFS(vector<vector<ld_pair>>& nfa, vector<State>& states, ld_pair d_pair , string word, uint start, uint pos) {
+
+    uint last_pos = (uint) word.size() - 1;
+    if (pos == last_pos) {
+
+        string curr_res;
+        string pref = states[start].path_from_start;
+        string suff = states[d_pair.second].path_to_end;
+        curr_res = pref + word + suff;
+
+        if (lex_cmp(final_res, curr_res)) {
+            final_res = curr_res;
+        }
+        return;
+    }
+
+    for (ld_pair neigh : nfa[d_pair.second]) { // sousede vstupniho nodu
+        State s = states[neigh.second];
+
+        char expected = word[pos + 1];
+        if (neigh.first == expected) {
+            size_t m = max(s.path_to_end.size(), word.size() - (pos+2));
+            size_t candidate = states[start].path_from_start.size() + pos+1 + m;
+            if (candidate <= final_res.size()) {
+                DFS(nfa, states, neigh, word, start, pos + 1);
+            }
+        }
+    }
+}
+
 
 
 int main() {
@@ -280,68 +310,19 @@ int main() {
     vector<uint> start_char_nodes = init_start_char_nodes(nfa, S[0]);
 
 
-    for(uint s = 0; s < N; s++) {
-        for(uint d = 0; d < nfa[s].size(); d++) {
-            ld_pair d_pair = nfa[s][d];
-            if (nfa[s][d].first == S[0]) {
-
-                uint b_len = (uint)states[s].path_from_start.size();
-                uint e_len = (uint)states[s].path_to_end.size();
-                uint m = max(e_len, (uint)S.size());
-                if (((b_len + m) <= result_cost)) {
-                    DFS(nfa, states, S, s, 0, d_pair);
+    for(uint src = 0; src < nfa.size(); src++) {
+        for(ld_pair d_pair : nfa[src]) {
+            if (d_pair.first == S[0]) { // pro kazdou hranu na ktere je start char
+                size_t b_len = states[src].path_from_start.size();
+                size_t e_len = states[src].path_to_end.size();
+                size_t m = max(e_len, S.size());
+                if (((b_len + m) <= final_res.size())) {
+                    DFS(nfa, states, d_pair, S, src, 0);
                 }
             }
         }
     }
-    cout << result_string << endl;
+    cout << final_res << endl;
     return 0;
 }
-
-bool l_cmp (string s1, string s2) {
-    return lexicographical_compare(s1.begin(), s1.end(), s2.begin(),
-                                   s2.end());
-}
-
-void DFS(vector<vector<ld_pair>>& nfa, vector<State>& states, string word, uint start, uint pos, ld_pair d_pair) {
-
-    if (pos == word.size() - 1) {
-
-        string curr_res;
-        string pref = states[start].path_from_start;
-        string suff = states[d_pair.second].path_to_end;
-        curr_res = pref + word + suff;
-
-        if (result_string.empty() || curr_res.size() < result_cost) {
-            result_string = curr_res;
-            result_cost = (int) curr_res.size();
-        } else if (curr_res.size() == result_string.size()) {
-
-            if (l_cmp(curr_res, result_string)) {
-                result_string = curr_res;
-                result_cost = (int) curr_res.size();
-            }
-        }
-        return;
-    }
-
-    for (uint i = 0; i < nfa[d_pair.second].size(); i++) {
-        ld_pair next = nfa[d_pair.second][i];
-        State s = states[next.second]; // soused
-
-        if (next.first == word[pos + 1]) {
-            auto m1 = (uint)word.size() - (pos+2);
-            auto m2 = (uint)s.path_to_end.size();
-            auto m = max(m1, m2);
-            if ((states[start].path_from_start.size() + pos+1 + m) <= result_cost) {
-                DFS(nfa, states,  word, start, pos + 1, nfa[d_pair.second][i]);
-            }
-        }
-    }
-}
-
-
-
-
-
 
