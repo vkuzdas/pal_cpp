@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project(pal_cpp)
 
 set(CMAKE_CXX_STANDARD 14)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wsign-compare -Wpedantic")
+#set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wsign-compare -Wpedantic")
 
 
 add_executable(dfs_colored_topsort 00_pre_fel/dfs-colored-topsort.cpp)
@@ -26,6 +26,16 @@ add_executable(cnt-prev 04_cnt_leh/cnt-prev.cpp)
 add_executable(lsword 05_lsword/lsword.cpp)
 add_executable(single 05_lsword/single_bfs.cpp)
 add_executable(triple_search 05_lsword/triple_search.cpp)
+add_executable(warning 05_lsword/WARNING_DONT_SUB.cpp)
+
+add_executable(chain 06_chain_cutt/chain.cpp)
+
+# "Library"
+add_executable(levenstein levenstein.cpp)
+add_executable(boyermoore boyermoore.cpp)
+add_executable(combinatorics combinatorics.cpp)
+
+
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
