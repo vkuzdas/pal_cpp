@@ -228,8 +228,9 @@ vector<pair<int, int>> mapping_from_d2(
 void print_res(vector<int>& first_subset, vector<int>& second_subset) {
     for (int i : first_subset)
         cout << i << " ";
-    for (int i : second_subset)
+    for (int i : second_subset) {
         cout << i << " ";
+    }
 }
 
 
@@ -274,14 +275,10 @@ int main() {
     vector<int> helper1;
     for (int i = 1; i < P+1; ++i) {helper1.push_back(i);}
 
-    set<vector<int>> dest;
+    set<pair<vector<int>, vector<int>>> already_generated;
     // vyber P osob z N osob
     do {
         vector<int> first_subset = adjust_choice(helper1); // neumim generovat s nulou :( musim odecist jednicku
-        auto dest_copy = dest;
-        dest_copy.insert(first_subset);
-        if (dest_copy.size()==dest.size()) continue;
-        if (first_subset[0] >= N/2) continue;
         vector<bool> in_first_subset(adj.size());
         for(int i : first_subset)
             in_first_subset[i] = true;
@@ -313,19 +310,17 @@ int main() {
             if(!solution_found)
                 continue;
 
-
+            auto cpy = already_generated;
+            cpy.insert({second_subset, first_subset});
+            if(cpy.size() == already_generated.size()) {
+                /// reseni uz jsme nasli
+                continue;
+            }
+            already_generated.insert({first_subset, second_subset});
             print_res(first_subset, second_subset);
-            dest.insert(second_subset);
             cout << endl;
         } while (next_K_subset(helper2, N));
-//        print_choice(first_subset);
-//        cout << "  good" << endl << endl;
-
     } while (next_K_subset(helper1, N));
-
-
-
-
     return 0;
 }
 
