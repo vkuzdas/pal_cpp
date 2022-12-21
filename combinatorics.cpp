@@ -29,7 +29,7 @@ void partial_permutations(const string& sofar, string rest, int n) {
     }
 }
 
-int main() {
+int _main() {
     partial_permutations("", "12345", 3);
 //    123
 //    124
@@ -76,14 +76,15 @@ bool next_K_subset(vector<int>& a, int n) {
     return false;
 }
 
-int _main() {
-    vector<int> a = {1,2,3};
-    while (next_K_subset(a, 5)) {
-        for(auto i : a) {
+int main() {
+    vector<int> a = {1,2};
+    do {
+        for (auto i: a) {
             cout << " " << i;
         }
         cout << endl;
-    }
+    } while (next_K_subset(a, 6));
+
 //    1 2 4
 //    1 2 5
 //    1 3 4
