@@ -100,13 +100,16 @@ bool edges_equal_C(vector<bool> &in_subset, vector<int> &subset, vector<vector<i
     return edges.size() == C;
 }
 
-bool sofar_valid(int P, vector<bool>& in_first_subset, vector<vector<int>>& adj, int C, int N, vector<int>& second_subset, vector<bool>& in_second_subset) {
-     // neumim generovat s nulou :( musim odecist jednicku
+bool subset_overlaps(vector<bool>& in_first_subset, vector<int>& second_subset) {
     for (auto i : second_subset) {
         if(in_first_subset[i])
-            return false;
+            return true;
     }
+    return false;
+}
 
+
+bool sofar_valid(int P, vector<bool>& in_first_subset, vector<vector<int>>& adj, int C, int N, vector<int>& second_subset, vector<bool>& in_second_subset) {
     if(!is_subset_connected(in_second_subset, second_subset, adj)) // over zda je choice spojeny
         return false;
     if(!edges_equal_C(in_second_subset, second_subset, adj, C)) // zkontroluj pocet hran
@@ -175,6 +178,94 @@ bool d1_OK(map<int, int> first_d1, map<int, int> second_d1) {
     return true;
 }
 
+vector<pair<int, int>> mapping_from_d2(
+        map<int, vector<int>>& first_d2,
+        map<int, vector<int>>& second_d2,
+        vector<int>& first_subset,
+        vector<int>& second_subset,
+        vector<bool>& in_first_subset,
+        vector<bool>& in_second_subset
+        ) {
+
+    vector<pair<int, int>> mapping;
+    vector<bool> mapped_nodes_first(first_subset.size(), false);
+
+    int i = 0;
+    for (pair<int, vector<int>> op : first_d2) { // pro vsechny vektory D2 ve starem
+        int curr_first_node = op.first;
+        vector<int> first_nei_degs = op.second;
+        // najdi tento vektor uvnitr d2_new
+        // pokud tam neni, vrat prazdnej mapping
+
+
+        for (auto const& np : second_d2) { // pro vsechny vektory D2 v novem
+            int curr_second_node = np.first;
+            if(mapped_nodes_first[i]) break;
+            if(!in_second_subset[curr_second_node]) continue;
+            vector<int> second_nei_degs = np.second;
+            bool vectors_equal = true;
+
+            for (int nei_degree = 0; nei_degree < first_nei_degs.size(); ++nei_degree) { // prochazime oba vektory najednou
+                int old_deg = first_nei_degs[nei_degree];
+                int new_deg = second_nei_degs[nei_degree];
+                if(old_deg != new_deg) { // zaznamy se nerovnaji-> mame spatnej match D2_old a D2_new
+                    vectors_equal = false;
+                    break;
+                }
+            }
+            if (vectors_equal) {
+                mapped_nodes_first[i] = true;
+                mapping.emplace_back(curr_first_node,curr_second_node);
+            }
+        }
+        i++;
+    }
+
+    return mapping;
+}
+
+
+void print_res(vector<int>& first_subset, vector<int>& second_subset) {
+    for (int i : first_subset)
+        cout << i << " ";
+    for (int i : second_subset)
+        cout << i << " ";
+}
+
+
+
+bool are_isomorphic(
+        vector<vector<int>> adj,
+        vector<int> first_subset,
+        vector<bool> in_first_subset,
+        vector<int> second_subset,
+        vector<bool> in_second_subset
+        ) {
+
+    /// nyni pro oba grafy spocteme sousedy
+    auto first_d1 = get_d1(first_subset, in_first_subset, adj);
+    auto second_d1 = get_d1(second_subset, in_second_subset, adj);
+    if(!d1_OK(first_d1, second_d1))
+        return false;
+
+
+    /// spocteme sousedy sousedu
+    vector<bool> mapped_nodes_first(first_subset.size(), false);
+    auto first_d2 = get_d2(adj, first_subset, in_first_subset);
+    auto second_d2 = get_d2(adj, second_subset, in_second_subset);
+
+    vector<pair<int,int>> mapping = mapping_from_d2(
+            first_d2, second_d2,
+            first_subset, second_subset,
+            in_first_subset, in_second_subset
+    );
+
+    /// MAPPING skryva mozna reseni
+    if (mapping.size() != first_subset.size())
+        return false;
+    return true;
+};
+
 int main() {
     int N,M,P,C; // nody, hrany, smugs, spoje
     cin >> N >> M >> P >> C;
@@ -195,12 +286,10 @@ int main() {
         for(int i : first_subset)
             in_first_subset[i] = true;
 
-        if(!is_subset_connected(in_first_subset, first_subset, adj)) // over zda je choice spojeny
+        if(!is_subset_connected(in_first_subset, first_subset, adj) ||
+            !edges_equal_C(in_first_subset, first_subset, adj, C)) {
             continue;
-        if(!edges_equal_C(in_first_subset, first_subset, adj, C)) // zkontroluj pocet hran
-            continue;
-
-
+        }
 
 
         vector<int> helper2;
@@ -208,79 +297,27 @@ int main() {
         do {
             vector<int> second_subset = adjust_choice(helper2);
             vector<bool> in_second_subset(adj.size());
-            for(int i : second_subset)
-                in_second_subset[i] = true;
-            if(!sofar_valid(P, in_first_subset, adj, C, N, second_subset, in_second_subset))
+            for(int i : second_subset) { in_second_subset[i] = true; }
+
+            if(subset_overlaps(in_first_subset, second_subset) ||
+                !is_subset_connected(in_second_subset, second_subset, adj) ||
+                !edges_equal_C(in_second_subset, second_subset, adj, C))
                 continue;
+
             /// sem se dostanu pouze tehdy, kdyz first_subset a second_subset
             /// 1) neprekryvaji se
             /// 2) maji M=C
             /// 3) jsou spojene
 
-            /// nyni pro oba grafy spocteme sousedy
-            auto first_d1 = get_d1(first_subset, in_first_subset, adj);
-            auto second_d1 = get_d1(second_subset, in_second_subset, adj);
-            if(!d1_OK(first_d1, second_d1))
+            bool solution_found = are_isomorphic(adj,first_subset, in_first_subset,second_subset, in_second_subset);
+            if(!solution_found)
                 continue;
 
 
-            /// spocteme sousedy sousedu
-            vector<pair<int,int>> mapping;
-            vector<bool> mapped_nodes_first(first_subset.size(), false);
-            map<int, vector<int>> first_d2 = get_d2(adj, first_subset, in_first_subset);
-            map<int, vector<int>> second_d2 = get_d2(adj, second_subset, in_second_subset);
-
-            int i = 0;
-            for (pair<int, vector<int>> op : first_d2) { // pro vsechny vektory D2 ve starem
-                int curr_first_node = op.first;
-                vector<int> first_nei_degs = op.second;
-                // najdi tento vektor uvnitr d2_new
-                // pokud tam neni, vrat prazdnej mapping
-
-
-                for (auto const& np : second_d2) { // pro vsechny vektory D2 v novem
-                    int curr_second_node = np.first;
-                    if(mapped_nodes_first[i]) break;
-                    if(!in_second_subset[curr_second_node]) continue;
-                    vector<int> second_nei_degs = np.second;
-                    bool vectors_equal = true;
-
-                    for (int nei_degree = 0; nei_degree < first_nei_degs.size(); ++nei_degree) { // prochazime oba vektory najednou
-                        int old_deg = first_nei_degs[nei_degree];
-                        int new_deg = second_nei_degs[nei_degree];
-                        if(old_deg != new_deg) { // zaznamy se nerovnaji-> mame spatnej match D2_old a D2_new
-                            vectors_equal = false;
-                            break;
-                        }
-                    }
-                    if (vectors_equal) {
-                        mapped_nodes_first[i] = true;
-                        mapping.emplace_back(curr_first_node,curr_second_node);
-                    }
-                }
-                i++;
-            }
-
-            if (mapping.size() != first_subset.size())
-                continue;
-            /// MAPPING skryva mozna reseni
-
-
-            for (int i = 0; i < first_subset.size(); ++i) {
-                cout << first_subset[i] << " ";
-            }
-            for (int i = 0; i < second_subset.size(); ++i) {
-                cout << second_subset[i] << " ";
-            }
+            print_res(first_subset, second_subset);
             dest.insert(second_subset);
             cout << endl;
-            continue;
         } while (next_K_subset(helper2, N));
-
-
-
-
-
 //        print_choice(first_subset);
 //        cout << "  good" << endl << endl;
 
