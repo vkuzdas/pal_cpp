@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <array>
 #include <queue>
-#include <climits>
 #include <sstream>
 #include <map>
 
@@ -45,29 +44,28 @@ bool next_K_subset(vector<int>& a, int n) {
 
 // udelej jedno BFS z nejakeho uzlu v subset
 // do souseda vejdi jen pokud je v subset
-bool is_connected(vector<bool>& in_subset, vector<int> &subset, vector<vector<int>> &adj) {
+bool is_subset_connected(vector<bool>& in_subset, vector<int> &subset, vector<vector<int>> &adj) {
+
     queue<int> Q;
-    vector<bool> visited(adj.size(), false);
-    Q.push(subset[0]); // vloz prvni subset node
+    vector<bool> visited(in_subset.size(), false);
+    Q.push(subset[0]);
 
     while (!Q.empty()) {
         int curr = Q.front(); Q.pop();
         visited[curr] = true;
-        for(auto neighbor : adj[curr]) { // koukni na nodovo sousedy
-            if(in_subset[neighbor] && !visited[neighbor]) { // pokud je soused v subsetu, dej ho do fronty
-                Q.push(neighbor);
+
+        for(auto neigh : adj[curr]) {
+            /// soused v subsetu a nenavstiveny -> do fronty
+            if(in_subset[neigh] && !visited[neigh]) {
+                Q.push(neigh);
             }
         }
     }
 
-    for (int i = 0; i < visited.size(); ++i) {
-        bool node_seen = visited[i];
-        bool node_in_subset = in_subset[i];
-        if(node_in_subset) {
-            if(!node_seen) {
-                return false;
-            }
-        }
+    /// pro kazdej nod v subsetu se mrkni jestli je visited
+    for(auto node : subset) {
+        if (!visited[node])
+            return false;
     }
     return true;
 }
@@ -109,7 +107,7 @@ bool sofar_valid(int P, vector<bool>& in_first_subset, vector<vector<int>>& adj,
             return false;
     }
 
-    if(!is_connected(in_second_subset, second_subset, adj)) // over zda je choice spojeny
+    if(!is_subset_connected(in_second_subset, second_subset, adj)) // over zda je choice spojeny
         return false;
     if(!edges_equal_C(in_second_subset, second_subset, adj, C)) // zkontroluj pocet hran
         return false;
@@ -197,7 +195,7 @@ int main() {
         for(int i : first_subset)
             in_first_subset[i] = true;
 
-        if(!is_connected(in_first_subset, first_subset, adj)) // over zda je choice spojeny
+        if(!is_subset_connected(in_first_subset, first_subset, adj)) // over zda je choice spojeny
             continue;
         if(!edges_equal_C(in_first_subset, first_subset, adj, C)) // zkontroluj pocet hran
             continue;
