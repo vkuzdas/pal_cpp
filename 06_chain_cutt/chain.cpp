@@ -63,9 +63,9 @@ int minimum(int a, int b, int c) {
     return min(min(a, b), c);
 }
 
-int replace_cost(string word1, string word2, int RF) {
+int get_replace_cost(string word1, string word2, int RF) {
     int total = 0;
-    for (int i = 0; i < word1.length()-1; ++i) {
+    for (int i = 0; i < word1.length(); ++i) {
         int diff = word1[i] - word2[i];
         if(diff < 0)
             diff = diff * -1;
@@ -91,7 +91,7 @@ vector<int> boyerMoore(string pattern, string text) {
             j--;
         if (j < 0) {
             positions.push_back(shift);
-            std::cout << "pattern occurs at shift = " << shift << std::endl;
+//            std::cout << "pattern occurs at shift = " << shift << std::endl;
             shift += (shift + m < n) ? m - badchar[text[shift + m]] : 1;
         } else {
             // Shift the pattern so that the bad character in text aligns with the last occurrence of it in pattern
@@ -196,7 +196,7 @@ string unwind_mtx(vector<vector<char>>& mtx) {
     return res;
 }
 
-int clip_cost(const string &scheme, int CF) {
+int get_clip_cost(const string &scheme, int CF) {
     char base = 'a' - 1;
     if (scheme.length() == 1)
         return (scheme[0] - base) * CF;
@@ -221,9 +221,10 @@ int main() {
 //    cout << chain;
 
 
-    set<Result> results;
+    Result best = {INT32_MAX, INT32_MAX, INT32_MAX};
+    vector<Result> r;
     for(const string& cs : clip_schemes) {
-        int clip_c = clip_cost(cs, CF);
+        int clip_cost = get_clip_cost(cs, CF);
         vector<int> positions = boyerMoore(cs, chain);
         for (auto pos : positions) {
 
@@ -239,20 +240,26 @@ int main() {
             end = start + (int)demand.length();
 
             /// dokud jsme nedojeli na konec textu nebo jsme neprohledali cele okoli
-            while (end <= chain.length() && start <= pos) {
-                // 2) CLIP
+            while (end <= trimmed.length() && start <= pos) {
+
                 string clip = trimmed.substr(start, demand.length());
-                // 3) REPLACE
-                int repl_c = replace_cost(clip, demand, RF);
-                int cost =  clip_c + repl_c;
-                results.insert(Result(pos, demand.length()+cs.length(), cost));
+
+                int replace_cost = get_replace_cost(clip, demand, RF);
+                int total_cost = clip_cost + replace_cost;
+//                cout << clip << "  <-" << demand << endl;
+                if(total_cost == 32) {
+                    cout << "bug";
+                }
+                Result best_candidate = Result(start+1, demand.length()+cs.length(), total_cost);
+                r.push_back(best_candidate);
+                best = min(best, best_candidate);
 
                 start++;  end++;
             }
         }
     }
 
-
+    cout << best.pos << " " << best.len << " " <<  best.cost << endl;
     return 0;
 }
 
