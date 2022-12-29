@@ -12,6 +12,17 @@
 using namespace std;
 
 
+struct C_Scheme {
+    vector<int> pos;
+    int clip_cost;
+    int len;
+    bool dont_clip;
+    string value;
+
+    C_Scheme() {}
+
+};
+
 struct Result {
     int pos;
     int len;
@@ -207,6 +218,19 @@ int get_clip_cost(const string &scheme, int CF) {
     return (size_of_first + size_of_last) * CF;
 }
 
+vector<C_Scheme> init_C_Schemes(const string& demand, const string& chain, const vector<string>& schemes, int CF) {
+    vector<C_Scheme> res;
+    for (const string& sch : schemes) {
+        C_Scheme curr;
+        curr.pos = boyerMoore(sch, chain);
+        curr.value = sch;
+        curr.len = sch.length();
+        curr.clip_cost = get_clip_cost(sch,CF);
+        curr.dont_clip = (!boyerMoore(sch, demand).empty());
+    }
+    return res;
+}
+
 int main() {
 
     /// Read input
@@ -215,21 +239,20 @@ int main() {
     vector<vector<char>> mtx = read_mtx(R, C);
     string demand;
     cin >> demand;
-    vector<string> clip_schemes = read_clip_schemes(CS);
+    vector<string> clip_schemes_plain = read_clip_schemes(CS);
 
     string chain = unwind_mtx(mtx);
+    vector<C_Scheme> C_Schemes = init_C_Schemes(demand, chain, clip_schemes_plain, CF);
 //    cout << chain;
 
 
     Result best = {INT32_MAX, INT32_MAX, INT32_MAX};
     vector<Result> r;
-    for(const string& cs : clip_schemes) {
-        int clip_cost = get_clip_cost(cs, CF);
-        vector<int> positions = boyerMoore(cs, chain);
-        for (auto pos : positions) {
+    for(const C_Scheme& cs : C_Schemes) {
+        for (auto pos : cs.pos) {
 
-            // 1) CUT-OUT   TODO: cut-out si uloz a potom ho vrat abys usetril pamet
-            string trimmed = chain.substr(0,pos) + chain.substr(pos+cs.length(), chain.length());
+            // 1) CUT-OUT
+            string trimmed = chain.substr(0,pos) + chain.substr(pos+cs.len, chain.length());
 
             int start, end;
             if(demand.length() == pos || demand.length() < pos) // demand přečnívá na začátku (nebo je akorát)
@@ -245,12 +268,12 @@ int main() {
                 string clip = trimmed.substr(start, demand.length());
 
                 int replace_cost = get_replace_cost(clip, demand, RF);
-                int total_cost = clip_cost + replace_cost;
+                int total_cost = cs.clip_cost + replace_cost;
 //                cout << clip << "  <-" << demand << endl;
                 if(total_cost == 32) {
                     cout << "bug";
                 }
-                Result best_candidate = Result(start+1, demand.length()+cs.length(), total_cost);
+                Result best_candidate = Result(start+1, demand.length()+cs.len, total_cost);
                 r.push_back(best_candidate);
                 best = min(best, best_candidate);
 
