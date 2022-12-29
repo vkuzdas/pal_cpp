@@ -44,16 +44,54 @@ int levenshteinDistance(string word1, string word2) {
         }
     }
     // Return  final cost
+//    word2 = " "+word2;
+//    cout <<endl <<endl <<"  "+ word1 << endl;
+//    for (int i = 0; i < dp.size(); ++i) {
+//        cout << word2[i];
+//        for (int j = 0; j < dp[0].size(); ++j) {
+//            cout << dp[i][j];
+//        }
+//        cout << endl;
+//    }
+
+    cout << endl << word1 << endl;
+    cout << word2 << " c = ";
+
     return dp[len1][len2];
 }
 
 
 
+//int main() {
+//    string str1 = "benyam";
+//    string str2 = "ephrem";
+//
+//    cout << "The Levenshtein distance between " << str1 << " and " << str2 << " is: " << levenshteinDistance(str1, str2) << endl;
+//
+//    return 0;
+//}
+
 int main() {
-    string str1 = "benyam";
-    string str2 = "ephrem";
+    string s = "abdabaacdacaabdabaacdaca";
+    cout << levenshteinDistance(s.substr(0,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(1,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(2,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(3,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(4,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(5,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(6,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(7,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(8,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(9,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(10,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(11,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(12,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(13,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(14,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(15,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(16,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(17,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(18,5), "bcadb") << endl;
+    cout << levenshteinDistance(s.substr(19,5), "bcadb") << endl;
 
-    cout << "The Levenshtein distance between " << str1 << " and " << str2 << " is: " << levenshteinDistance(str1, str2) << endl;
-
-    return 0;
 }

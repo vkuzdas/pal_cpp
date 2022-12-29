@@ -31,6 +31,8 @@ add_executable(warning 05_lsword/WARNING_DONT_SUB.cpp)
 add_executable(chain 06_chain_cutt/chain.cpp)
 
 add_executable(smug 07_smug/smug.cpp)
+add_executable(smug-hamet 07_smug/smug-hamet.cpp)
+add_executable(smug-tivrek 07_smug/smug-tivrek.cpp)
 
 # "Library"
 add_executable(levenstein levenstein.cpp)
@@ -40,6 +42,9 @@ add_executable(bfs-paths-parents bfs-paths-parents.cpp)
 add_executable(dfs-time-color dfs-time-color.cpp)
 add_executable(connected connected.cpp)
 
+# cizi ukoly
+
+add_executable(hw3-khorin 03_netw/hw3-khorin.cpp)
 
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")

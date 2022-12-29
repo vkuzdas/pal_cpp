@@ -76,7 +76,7 @@ bool next_K_subset(vector<int>& a, int n) {
     return false;
 }
 
-int main() {
+int _main1() {
     vector<int> a = {1,2};
     do {
         for (auto i: a) {
@@ -90,7 +90,78 @@ int main() {
 //    1 3 4
 //    1 3 5
 //    ...
+    return 0;
 }
 
+
+///  ##########################
+///  ## K-SUBSETS- Gray code ##
+///  ##########################
+
+
+vector<int> permutation = {0,1,2,3};
+vector<int> chosen = {0,1,2,3};
+int n = 5;
+
+
+void search() {
+    if (permutation.size() == n) {
+// process permutation
+    } else {
+        for (int i = 0; i < n; i++) {
+            if (chosen[i]) continue;
+            chosen[i] = true;
+            permutation.push_back(i);
+            search();
+            chosen[i] = false;
+            permutation.pop_back();
+        }
+    }
+}
+
+
+
+
+
+
+
+int gray_code (int n) {
+    return n ^ (n >> 1);
+}
+
+int count_bits (int n) {
+    int res = 0;
+    for (; n; n >>= 1)
+        res += n & 1;
+    return res;
+}
+
+void all_combinations (int n, int k) {
+    for (int i = 0; i < (1 << n); i++) {
+        int cur = gray_code (i);
+        if (count_bits(cur) == k) {
+            for (int j = 0; j < n; j++) {
+                if (cur & (1 << j))
+                    cout << j + 1;
+            }
+            cout << "\n";
+        }
+    }
+}
+
+void print_choice(vector<int> pick) {
+    for (auto i: pick) {
+        cout << " " << i;
+    }
+}
+
+int main() {
+//    all_combinations(8,4);
+    search();
+    print_choice(chosen);
+    search();
+    print_choice(chosen);
+
+}
 
 
