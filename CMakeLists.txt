@@ -34,6 +34,8 @@ add_executable(smug 07_smug/smug.cpp)
 add_executable(smug-hamet 07_smug/smug-hamet.cpp)
 add_executable(smug-tivrek 07_smug/smug-tivrek.cpp)
 
+add_executable(iauto 08_incomp_auto/iauto.cpp)
+
 # "Library"
 add_executable(levenstein levenstein.cpp)
 add_executable(boyermoore boyermoore.cpp)
