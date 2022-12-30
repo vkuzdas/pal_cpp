@@ -86,50 +86,35 @@ int main () {
 
     // pro node, simuluj jeho respective string
     // outputni kde konci
-    set<int> neg_ends;
-    for (int i = 0; i < S; ++i) neg_ends.insert(i);
-    set<int> pos_ends;
 
 
-    for (int start = 0; start < all_strings.size(); ++start) {
-        string text = all_strings[start];
-        bool pos = start < P;
-        int end = simulate_atmt(start, text, adj);
-        if(pos) {
-            pos_ends.insert(end);
-            neg_ends.erase(end);
-        }
-//        if (!pos) {
-//            // negative case
-//            cout << start << " ";
-//            for (int i = 0; i < S; ++i) {
-//                if(i == start) continue;
-//                if(i == end) continue;
-//                cout << i << " ";
-//            }
-//        }
-//        cout << endl;
-
-        if(DBG) {
-            string should = pos ? " should" : " shouldnt";
-            cout << text << " from " << start << should + " end in " << end << endl;
-        }
-    }
-    for (int i = 0; i < S; ++i) {
-        cout << i << " ";
-        if(i < P ) {
-            // positive cases
-            for(int st : pos_ends) {
-                cout << st << " ";
-            }
-        } else {
-            // negative cases
-            for(int st : neg_ends) {
-                cout << st << " ";
+    for (int start = 0; start < S; ++start) {
+        set<int> p_ends;
+        set<int> n_ends;
+        for (int i = 0; i < all_strings.size(); ++i) {
+            string text = all_strings[i];
+            int end = simulate_atmt(start, text, adj);
+            if(i < P) {
+                p_ends.insert(end);
+            } else {
+                n_ends.insert(end);
             }
         }
-        cout << endl;
+
+        if (p_ends.size() == F) {
+            cout << start << " ";
+            for(int i : p_ends) cout << i << " ";
+            cout << endl;
+        }
+
+//        cout << start << "   ";
+//        cout <<  " {";
+//        for(int e : p_ends) cout << e << " ";
+//        cout <<  " }     !{";
+//        for(int e : n_ends) cout << e << " ";
+//        cout << "}"<< endl;
     }
+
 }
 
 
