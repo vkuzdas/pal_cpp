@@ -35,9 +35,11 @@ add_executable(smug-hamet 07_smug/smug-hamet.cpp)
 add_executable(smug-tivrek 07_smug/smug-tivrek.cpp)
 
 add_executable(iauto 08_incomp_auto/iauto.cpp)
+add_executable(electri 09_electrification/electri.cpp)
 
 # "Library"
 add_executable(levenstein levenstein.cpp)
+add_executable(MST MST.cpp)
 add_executable(boyermoore boyermoore.cpp)
 add_executable(combinatorics combinatorics.cpp)
 add_executable(bfs-paths-parents bfs-paths-parents.cpp)
