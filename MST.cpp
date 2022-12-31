@@ -65,6 +65,8 @@ struct Edge {
     int dest;
     int cost;
 
+    Edge(int src, int dest, int cost) : src(src), dest(dest), cost(cost) {}
+
     bool operator < (Edge const& other) const  {
         return cost < other.cost;
     }
@@ -105,7 +107,7 @@ int kruskal (vector<Edge> &edges) {
 
     vector<int> parent;
     vector<int> rank;
-    int n;
+    int n = edges.size();
 
     int cost = 0;
     vector<Edge> result;
@@ -121,7 +123,7 @@ int kruskal (vector<Edge> &edges) {
         int src_set = kruskal_find_set(parent, rank, e.src);
         int dest_set = kruskal_find_set(parent, rank, e.dest);
 
-        if (src_set == dest_set) {
+        if (src_set != dest_set) {
             cost += e.cost;
             result.push_back(e);
             kruskal_union_sets(parent, rank, e.src, e.dest);
@@ -136,5 +138,6 @@ int kruskal (vector<Edge> &edges) {
 ///  ##############
 
 int main() {
-
+    vector<Edge> es = {{0,1,3}, {1,2,1}, {0,3,5},{2,3,1}};
+    cout << kruskal(es);
 }
