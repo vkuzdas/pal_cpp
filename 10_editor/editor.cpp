@@ -7,8 +7,38 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <set>
+#include <queue>
 
 using namespace std;
+
+struct MHtype {
+    int M;
+    int H;
+
+    MHtype(int m, int h) : M(m), H(h) {}
+
+
+    bool operator<(const MHtype &rhs) const {
+        if (M < rhs.M)
+            return true;
+        if (rhs.M < M)
+            return false;
+        return H > rhs.H;
+    }
+
+    bool operator>(const MHtype &rhs) const {
+        return rhs < *this;
+    }
+
+    bool operator<=(const MHtype &rhs) const {
+        return !(rhs < *this);
+    }
+
+    bool operator>=(const MHtype &rhs) const {
+        return !(*this < rhs);
+    }
+};
 
 
 // Function to calculate the minimum of three values
@@ -84,6 +114,44 @@ vector<int> find_next_cuts(string P, string T, int D) {
 }
 
 
+
+
+MHtype rec_help(const string& P, const string& T, int D) {
+
+    /// base case
+    if(T.length() < 2) {
+        if(T.empty())
+            return MHtype{0,0};  /// prazdnej string -> nic
+        return MHtype{0,1};   /// jedno pismeno -> H++
+    }
+
+    vector<int> found_idxs = find_next_cuts(P, T, D);
+
+    if (!found_idxs.empty()) {
+        priority_queue<MHtype> PQ;
+
+        for (int cut_index : found_idxs) {
+            string new_T = T.substr(cut_index, T.length());
+            PQ.push(rec_help(P, new_T, D));
+        }
+        MHtype best = PQ.top();
+        best.M += 1;
+        return best;
+    } else {
+        string new_T = T.substr(1, T.length());
+        MHtype solution = rec_help(P, new_T, D);
+        solution.H += 1;
+        return solution;
+    }
+}
+
+int _main() {
+    auto a = rec_help("abb", "aabbbcabab", 1);
+    cout << a.M << " " << a.H << endl;
+}
+
+
+
 int main() {
     string T;
     string P;
@@ -92,27 +160,6 @@ int main() {
     cin >> P;
     cin >> D;
 
-    int M = 0;
-    int H = 0;
-
-    while(!T.empty()){
-        vector<int> found_idxs = find_next_cuts(P, T, D);
-
-        if (!found_idxs.empty()) {
-            int idx = found_idxs[0];
-            T = T.substr(idx, T.length());
-            M ++;
-            // pokud jsme nasli vice vyhovujicich, tak chceme pro kazdy zjistit kolikrat
-        } else {
-            H++;
-            T = T.substr(1, T.length());
-            // pokud jsme nasli pouze jeden vyhovujici
-        }
-    }
-
-    cout << M << " " << H << endl;
-
-
-
-
+    auto a = rec_help(P, T, D);
+    cout << a.M << " " << a.H << endl;
 }
