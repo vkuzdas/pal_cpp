@@ -14,6 +14,8 @@ struct Edge {
     int dest;
     int cost;
 
+    Edge(int src, int dest, int cost) : src(src), dest(dest), cost(cost) {}
+
     bool operator < (const Edge &e) const {
         return cost < e.cost;
     }
@@ -23,185 +25,173 @@ struct Edge {
     }
 };
 
-
-
 struct Node {
     int parrent;
     int capacity;
-    int val;
-    int mark;
+    int comp;
     vector<int> neib;
 };
 
 
-int find(vector<Node> &UF, int vert) {
-    if (UF[vert].parrent == vert) {
+int find(vector<Node> &nodes, int vert) {
+    if (nodes[vert].parrent == vert) {
         return vert;
-    } else {
-        return UF[vert].parrent = find(UF, UF[vert].parrent);
     }
-
+    return nodes[vert].parrent = find(nodes, nodes[vert].parrent);
 }
 
-
-void unite(vector<Node> &UF, int &counter, int v1, int v2, int eVal, bool force) {
+void unite_all(vector<Node> &nodes, int &counter, Edge e, bool force, int &total_cost) {
     // not same commponent
-    int t1 = find(UF, v1);
-    int t2 = find(UF, v2);
-    if (t1 != t2) {
-        if (t1 < t2) {
-            UF[t2].parrent = t1;
-            UF[t1].capacity += UF[t2].capacity;
-            UF[t1].val = UF[t1].val + eVal + UF[t2].val;
+    int cost = e.cost;
+    int src = e.src;
+    int dest = e.dest;
+    int src_prt = find(nodes, src);
+    int dest_prt = find(nodes, dest);
+
+    if (src_prt != dest_prt) {
+        if (src_prt < dest_prt) {
+            nodes[dest_prt].parrent = src_prt;
+            nodes[src_prt].capacity += nodes[dest_prt].capacity;
         } else {
-            UF[t1].parrent = t2;
-            UF[t2].capacity += UF[t1].capacity;
-            UF[t2].val = UF[t2].val + eVal + UF[t1].val;
+            nodes[src_prt].parrent = dest_prt;
+            nodes[dest_prt].capacity += nodes[src_prt].capacity;
         }
+        total_cost += cost;
         --counter;
     }
-    if (t1 == t2 && force) {
-        UF[t1].val += eVal;
+    if (src_prt == dest_prt && force) {
+        total_cost += cost;
         --counter;
     }
 }
 
-
-void dfs(vector<Node> &UF, int v, int mark) {
-    UF[v].mark = mark;
-    for (auto e: UF[v].neib) {
-        if (UF[e].mark == -1) dfs(UF, e, mark);
-    }
+void dfs(vector<Node> &nodes, int curr, int comp) {
+    nodes[curr].comp = comp;
+    for (auto neigh: nodes[curr].neib)
+        if (nodes[neigh].comp == -1)
+            dfs(nodes, neigh, comp);
 }
-
-
-int find_b(vector<Node> &UFB, int vert) {
-    if (UFB[vert].parrent == vert) {
-        return vert;
-    } else {
-        return UFB[vert].parrent = find_b(UFB, UFB[vert].parrent);
-    }
-}
-
-
-bool unite_B(vector<Node> &UFB, int v1, int v2, int eVal) {
+/// true pokud odlisne komponenty
+bool unite_comp(vector<Node> &comp_nodes, int src_comp, int dest_comp) {
     // not same commponent
-    int t1 = find_b(UFB, v1);
-    int t2 = find_b(UFB, v2);
-    if (t1 != t2) {
-        if (t1 < t2) {
-            UFB[t2].parrent = t1;
-            UFB[t1].capacity += UFB[t2].capacity;
-            UFB[t1].val = UFB[t1].val + eVal + UFB[t2].val;
+    int src_prt = find(comp_nodes, src_comp);
+    int dest_prt = find(comp_nodes, dest_comp);
+
+    if (src_prt != dest_prt) {
+        if (src_prt < dest_prt) {
+            comp_nodes[dest_prt].parrent = src_prt;
+            comp_nodes[src_prt].capacity += comp_nodes[dest_prt].capacity;
         } else {
-            UFB[t1].parrent = t2;
-            UFB[t2].capacity += UFB[t1].capacity;
-            UFB[t2].val = UFB[t2].val + eVal + UFB[t1].val;
+            comp_nodes[src_prt].parrent = dest_prt;
+            comp_nodes[dest_prt].capacity += comp_nodes[src_prt].capacity;
         }
         return true;
     }
     return false;
 }
 
-
-
-
-int counter;
-int comp = 0;
-
 int main() {
-    priority_queue<Edge, vector<Edge>, greater<>> river_edges_PQ0;
-    priority_queue<Edge, vector<Edge>, greater<>> river_edges_PQ1;
-    priority_queue<Edge, vector<Edge>, greater<>> other_edges_PQ;
 
     int M, N, D, B;
     cin >> M >> N >> D >> B;
+
+    int counter;
+    int comp = 0;
     counter = N;
 
 
     Node tmp;
     tmp.neib = vector<int>();
-    tmp.val = 0;
-    tmp.mark = -1;
+    tmp.comp = -1;
     tmp.capacity = 1;
-    vector<Node> nodes = vector<Node>(N, tmp);
+    vector<Node> all_nodes = vector<Node>(N, tmp);
 
+
+/// INIT
+    priority_queue<Edge, vector<Edge>, greater<>> river_edges_PQ;
+    priority_queue<Edge, vector<Edge>, greater<>> other_edges_PQ;
     for (int i = 0; i < M; i++) {
         int src, dest, cost;
         cin >> src >> dest >> cost;
 
-        Edge tmp;
-        tmp.src = src;
-        tmp.dest = dest;
-        tmp.cost = cost;
-
         // init Union find struct
-        nodes[src].parrent = src;
-        nodes[dest].parrent = dest;
+        all_nodes[src].parrent = src;
+        all_nodes[dest].parrent = dest;
 
         // check if is the river edge
-        if (src <= D && dest > D || src > D && dest <= D) {
-            // add to river queue
-            river_edges_PQ0.push(tmp);
+        Edge tmp(src, dest, cost);
 
+        bool on_river = src <= D && dest > D || src > D && dest <= D;
+        if (on_river) {
+            river_edges_PQ.push(tmp);
         } else {
-            // add to other queue
+            /// řeka tvoří řez grafem
+            /// řez může vytvořit několik souvislých podgrafů
             other_edges_PQ.push(tmp);
-            nodes[src].neib.push_back(dest);
-            nodes[dest].neib.push_back(src);
+            all_nodes[src].neib.push_back(dest);
+            all_nodes[dest].neib.push_back(src);
         }
     }
 
-    vector<Node> UFB = vector<Node>();
+    /// DFSkem najdeme a spocteme vsechny podgrafy / komponenty
+
+    vector<Node> comp_nodes = vector<Node>();
     // find Components
-    for (int i = 0; i < N; i++) {
-        if (nodes[i].mark == -1) {
+    for (int curr = 0; curr < N; curr++) {
+        // z kazdeho nenavstiveneho uzle udelej DFS
+        if (all_nodes[curr].comp == -1) {
+            dfs(all_nodes, curr, comp);
 
-            dfs(nodes, i, comp);
-            Node ut;
-
-            ut.parrent = comp;
-            ut.capacity = 1;
-            UFB.push_back(ut);
+            Node node;
+            node.parrent = comp;
+            node.capacity = 1;
+            comp_nodes.push_back(node);
             comp += 1;
-
         }
     }
 
 
-    while (!river_edges_PQ0.empty()) {
-        Edge tmp = river_edges_PQ0.top();
-        river_edges_PQ0.pop();
+    int total_cost = 0;
 
-        // if i can add it
-        if (unite_B(UFB, nodes[tmp.src].mark, nodes[tmp.dest].mark, tmp.cost)) {
+    /// beru river edges od nejmensiho
+    /// pokud je edge v jine komponente, pridam
+    priority_queue<Edge, vector<Edge>, greater<>> river_edges_PQ1;
+    while (!river_edges_PQ.empty()) {
 
-            // if i can add it
-            unite(nodes, counter, tmp.src, tmp.dest, tmp.cost, true);
+        Edge e = river_edges_PQ.top();
+        river_edges_PQ.pop();
+        int src_comp = all_nodes[e.src].comp;
+        int dest_comp = all_nodes[e.dest].comp;
+
+        if (unite_comp(comp_nodes, src_comp, dest_comp)) {
+            unite_all(all_nodes, counter, e, true, total_cost);
         } else {
-            river_edges_PQ1.push(tmp);
+            river_edges_PQ1.push(e);
         }
+
     }
 
-    // Kruscal's alg cross the river
+    // Kruskal across the river
     while (counter > N - B) {
         Edge tmp = river_edges_PQ1.top();
         river_edges_PQ1.pop();
-
         // if i can add it
-        unite(nodes, counter, tmp.src, tmp.dest, tmp.cost, true);
+        unite_all(all_nodes, counter, tmp, true, total_cost);
     }
 
-    // Kruscal's alg to other
-    while (nodes[find(nodes, 0)].capacity != N) {
+    // Kruskal to other
+    while (true) {
         Edge tmp = other_edges_PQ.top();
         other_edges_PQ.pop();
 
-        // if i can add it
-        unite(nodes, counter, tmp.src, tmp.dest, tmp.cost, false);
+        unite_all(all_nodes, counter, tmp, false, total_cost);
+
+        int capacity = all_nodes[0].capacity;
+        if (capacity == N) break;
     }
 
-    cout << nodes[find(nodes, 0)].val << endl;
+
+    cout << total_cost << endl;
 }
 
 
