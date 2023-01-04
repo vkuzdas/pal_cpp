@@ -11,24 +11,56 @@
 
 using namespace std;
 
+
+struct Cell {
+    bool ins;
+    bool rep;
+    bool del;
+
+    Cell() {}
+
+    Cell(bool ins, bool rep, bool del) : ins(ins), rep(rep), del(del) {}
+};
+
+
+
 // Function to calculate the minimum of three values
 int minimum(int a, int b, int c) {
     return min(min(a, b), c);
 }
 
 
-void ld_dbg(string shorter, string longer, vector<vector<int>> dp) {
+void ld_dbg(string pattern, string text, vector<vector<int>> dp) {
     // print dlouheho stringu nahore
     cout << "    ";
-    for(char c : longer) cout << c << " ";
+    for(char c : text) cout << c << " ";
     cout << endl;
 
     for (int i = 0; i < dp.size(); ++i) {
-        if(i != 0) cout << shorter[i-1] << " ";
+        if(i != 0) cout << pattern[i - 1] << " ";
         if(i == 0) cout << "  ";
         for (int j = 0; j < dp[0].size(); ++j) {
 
             cout << dp[i][j] << " ";
+        }
+        cout << endl;
+    }
+}
+
+void op_dbg(string pattern, string text, vector<vector<Cell>> op) {
+    // print dlouheho stringu nahore
+    cout << "\n      ";
+    for(char c : text) cout << "[ " <<c  << " ]";
+    cout << endl;
+
+    for (int r = 0; r < op.size(); ++r) {
+        if(r != 0) cout << pattern[r - 1] << " ";
+        if(r == 0) cout << "  ";
+        for (int c = 0; c < op[0].size(); ++c) {
+            if (op[r][c].ins) cout << "i"; else cout << " ";
+            if (op[r][c].del) cout << "d"; else cout << " ";
+            if (op[r][c].rep) cout << "r"; else cout << " ";
+            cout << "][";
         }
         cout << endl;
     }
@@ -43,8 +75,26 @@ int cost(char c1, char c2) {
     }
 }
 
+/// kolik existuje podretezcu TEXTu aby LD = k?
+// projdeme spodni radek tabulky, zde identifikujeme bunky kde hodnota <= tab
+//void ld_traceback(vector<vector<int>> tab, string pattern, string text, int k) {
+//    vector<int> last_row = tab[pattern.length()];
+//
+//    for (int col = 0; col < last_row.size(); ++col) {
+//        int v = last_row[col];
+//        /// pro kazdy prvek v poslednim radku <= k
+//        if(v <= k) {
+//            char p = pattern[]
+//            char t = pattern[]
+//
+//        }
+//    }
+//}
 
-void traceback_ite(vector<vector<int>> D, string shorter, string longer, int row, int col) {
+
+
+
+void traceback_ite(vector<vector<int>> tab, string pattern, string text, int row, int col) {
     stack<pair<int, int>> st;
     st.push(make_pair(row, col));
 
@@ -55,81 +105,98 @@ void traceback_ite(vector<vector<int>> D, string shorter, string longer, int row
         row = p.first;
         col = p.second;
 
-        int curr_cell = D[row][col];
-        int del_cell = D[row][col - 1];   // segfaults
-        int ins_cell = D[row - 1][col];   // segfaults
-        int rep_cell = D[row - 1][col - 1];   // segfaults
+        int curr_cell = tab[row][col];
+        int del_cell = tab[row][col - 1];   // segfaults
+        int ins_cell = tab[row - 1][col];   // segfaults
+        int rep_cell = tab[row - 1][col - 1];   // segfaults
 
         if (row > 0 && col > 0) {
-            if (curr_cell == rep_cell + cost(shorter[row], longer[col])) {
+            if (curr_cell == rep_cell + cost(pattern[row], text[col])) {
                 st.push({row - 1, col - 1});
-                printf("%c", longer[min(row-1, col-1)]);
+                printf("%c", text[min(row - 1, col - 1)]);
             }
             else if (curr_cell == ins_cell + 1) {
                 st.push({row - 1, col});
-                printf("%c", longer[min(row-1, col-1)]);
+                printf("%c", text[min(row - 1, col - 1)]);
             }
             else if (curr_cell == del_cell + 1) {
                 st.push({row, col - 1});
-                printf("%c", longer[min(row-1, col-1)]);
+                printf("%c", text[min(row - 1, col - 1)]);
             }
         }
     }
 }
 
-void traceback_rec(vector<vector<int>> D, string shorter, string longer, int row, int col) {
+void traceback_rec(vector<vector<int>> D, string pattern, string text, int row, int col) {
     if (row > 0 && col > 0) {
         int curr_cell = D[row][col];
         int del_cell = D[row][col - 1];
         int ins_cell = D[row - 1][col];
         int rep_cell = D[row - 1][col - 1];
 
-        if (curr_cell == rep_cell + cost(shorter[row], longer[col])) {
-            traceback_rec(D, shorter, longer, row - 1, col - 1);
-            printf("%c %c", shorter[row-1], longer[col-1]);
+        if (curr_cell == rep_cell + cost(pattern[row], text[col])) {
+            traceback_rec(D, pattern, text, row - 1, col - 1);
+            printf("%c %c", pattern[row - 1], text[col - 1]);
         }
         if (curr_cell == ins_cell + 1) {
-            traceback_rec(D, shorter, longer, row - 1, col);
-            printf("%c -", shorter[row-1]);
+            traceback_rec(D, pattern, text, row - 1, col);
+            printf("%c -", pattern[row - 1]);
         }
         if (curr_cell == del_cell + 1) {
-            traceback_rec(D, shorter, longer, row, col - 1);
-            printf("- %c", longer[col-1]);
+            traceback_rec(D, pattern, text, row, col - 1);
+            printf("- %c", text[col - 1]);
         }
     }
 }
 
 /// levensteinova vzdálenost optimálního podřetězce končící na této pozici
-vector<vector<int>> ld_apx_search(string shorter, string longer, bool print_table) {
-    int len1 = (int) shorter.length();
-    int len2 = (int) longer.length();
+vector<vector<int>> ld_apx_search(string pattern, string text, bool print_table) {
+    int p_len = (int) pattern.length();
+    int t_len = (int) text.length();
 
-    vector<vector<int>> dp(len1 + 1, vector<int>(len2 + 1, 0));
+    vector<vector<int>> dp(p_len + 1, vector<int>(t_len + 1, 0));
+    vector<vector<Cell>> op(p_len + 1, vector<Cell>(t_len + 1, {false, false, false}));
+
     /// init prvniho sloupce
-    for (int i = 1; i <= len1; i++) {
+    for (int i = 1; i <= p_len; i++) {
         dp[i][0] = i;
+        op[i][0] = {true, false, false};
     }
 
-    for (int i = 1; i <= len1; i++) {
-        for (int j = 1; j <= len2; j++) {
-            if (shorter[i - 1] == longer[j - 1]) {
+    for (int r = 1; r <= p_len; r++) {
+        for (int c = 1; c <= t_len; c++) {
+            if (pattern[r - 1] == text[c - 1]) {
                 /// chars are same, cost is zero
-                dp[i][j] = dp[i - 1][j - 1];
+                dp[r][c] = dp[r - 1][c - 1];
+                op[r][c] = {false, true, false};
             }
             else {
                 /// chars are different, cost  is + 1
-                int del_cost = dp[i - 1][j];
-                int ins_cost = dp[i][j - 1];
-                int sub_cost = dp[i - 1][j - 1];
-                dp[i][j] = 1 + minimum(del_cost, ins_cost, sub_cost);
+                int i_cost = dp[r - 1][c]; // radek nahoru, stejny sloupec
+                int d_cost = dp[r][c - 1];
+                int r_cost = dp[r - 1][c - 1];
+                // r,r,d = min => delam vsechny operace
+
+                Cell cell{false, false, false};
+                int min = minimum(d_cost, i_cost, r_cost);
+                if(min == d_cost)
+                    cell.del = true;
+                if(min == i_cost)
+                    cell.ins = true;
+                if(min == r_cost)
+                    cell.rep = true;
+
+                dp[r][c] = 1 + min;
+                op[r][c] = cell;
             }
         }
     }
 
     if(print_table) {
-        ld_dbg(shorter, longer, dp);
+        ld_dbg(pattern, text, dp);
+        op_dbg(pattern, text, op);
     }
-//    cout << dp[len1][len2]
+//    cout << dp[p_len][t_len]
     return dp;
 }
 
@@ -138,22 +205,22 @@ vector<vector<int>> ld_apx_search(string shorter, string longer, bool print_tabl
 
 /// vzdalenost prefixu P a prefixu T
 int ld_vanilla(string shorter, string longer, bool print_table) {
-    int len1 = (int) shorter.length();
-    int len2 = (int) longer.length();
+    int p_len = (int) shorter.length();
+    int t_len = (int) longer.length();
 
-    vector<vector<int>> dp(len1 + 1, vector<int>(len2 + 1, 0));
+    vector<vector<int>> dp(p_len + 1, vector<int>(t_len + 1, 0));
 
     /// init prvniho sloupce
-    for (int i = 1; i <= len1; i++) {
+    for (int i = 1; i <= p_len; i++) {
         dp[i][0] = i;
     }
     /// init prvniho radku
-    for (int j = 1; j <= len2; j++) {
+    for (int j = 1; j <= t_len; j++) {
         dp[0][j] = j;
     }
 
-    for (int i = 1; i <= len1; i++) {
-        for (int j = 1; j <= len2; j++) {
+    for (int i = 1; i <= p_len; i++) {
+        for (int j = 1; j <= t_len; j++) {
             if (shorter[i - 1] == longer[j - 1]) {
                 /// chars are same, cost is zero
                 dp[i][j] = dp[i - 1][j - 1];
@@ -172,7 +239,7 @@ int ld_vanilla(string shorter, string longer, bool print_table) {
         ld_dbg(shorter, longer, dp);
     }
 
-    return dp[len1][len2];
+    return dp[p_len][t_len];
 }
 
 
@@ -188,31 +255,16 @@ int ld_vanilla(string shorter, string longer, bool print_table) {
 
 int main() {
 
-    auto dp = ld_apx_search("abb", "aabbbcabab", true);
-    traceback_ite(dp, "abb", "aabbbcabab", 2, 2);
-    cout << endl;
-    ld_apx_search("abb", "bbcabab", true);
-    cout << endl;
-    ld_apx_search("abb", "cabab", true);
+    auto dp = ld_apx_search("old", "coldcolt", true);
+//    ld_traceback(dp, "old", "coldcolt", 1);
 
 
 
-
-//    cout << ld_apx_search("ncecj", "gjececcgkmjeccjjchjecfkcje", true);
-
-
-
-//    cout << ld_vanilla("ncecj", "gjececcgkmjeccjjchjecfkcje", true) << endl; // M++   nejdelsi
-//    cout << ld_vanilla("ncecj", "ccgkmjeccjjchjecfkcje", true) << endl; // M++ nejdelsi
-//    cout << ld_vanilla("ncecj", "kmjeccjjchjecfkcje", true) << endl; /// H++
-//    cout << ld_vanilla("ncecj", "mjeccjjchjecfkcje", true) << endl; // M++ nejdelsi
-//    cout << ld_vanilla("ncecj", "cjchjecfkcje", true) << endl; // M++ jedinej moznej
-//    cout << ld_vanilla("ncecj", "chjecfkcje", true) << endl; // M++ jedinej moznej
-//    cout << ld_vanilla("ncecj", "ecfkcje", true) << endl; // M++ jedinej moznej
-//    cout << ld_vanilla("ncecj", "kcje", true) << endl; // M++ jedinej moznej
-//    cout << ld_vanilla("ncecj", "cj", true) << endl; // M++ jedinej moznej
-//    cout << ld_vanilla("ncecj", "ch", true) << endl; // M++ jedinej moznej
-//    cout << ld_vanilla("ncecj", "je", true) << endl; // M++ jedinej moznej
+//    traceback_ite(dp, "old", "coldcolt", 2, 2);
+//    cout << endl;
+//    ld_apx_search("abb", "bbcabab", true);
+//    cout << endl;
+//    ld_apx_search("abb", "cabab", true);
 
 }
 
