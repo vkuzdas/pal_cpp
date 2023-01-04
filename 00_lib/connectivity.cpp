@@ -59,6 +59,7 @@ void print_choice(vector<int> pick) {
     for (auto i: pick) {
         cout << " " << i;
     }
+    cout << endl;
 }
 
 bool next_K_subset(vector<int>& a, int n) {
@@ -82,7 +83,7 @@ vector<int> adjust_subset(vector<int>& pick) {
     return p2;
 }
 
-int main() {
+int _main() {
     /// umi cist 07_smug/datapub/*
     int N,M,P,C; // nody, hrany, smugs, spoje
     cin >> N >> M >> P >> C;
@@ -107,4 +108,12 @@ int main() {
 
 
     return 0;
+}
+
+
+int main () {
+    vector<int> a = {1,2,3,4};
+    print_choice(a);
+    next_K_subset(a, 2);
+    print_choice(a);
 }
