@@ -57,7 +57,7 @@ map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &curr_subset,
     return node_d2;
 }
 
-
+// (d1 btw two graphs are equivalent)
 bool d1_OK(map<int, int> first_d1, map<int, int> second_d1) {
     vector<int> first_d1_sorted;
     for (auto p : first_d1) first_d1_sorted.push_back(p.second);
@@ -74,6 +74,7 @@ bool d1_OK(map<int, int> first_d1, map<int, int> second_d1) {
     return true;
 }
 
+// (possible mappings of G1 -> G2)
 vector<pair<int, int>> mapping_from_d2(
         map<int, vector<int>>& first_d2,
         map<int, vector<int>>& second_d2,

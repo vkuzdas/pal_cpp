@@ -99,7 +99,7 @@ void traceback_rec(vector<vector<int>> D, string shorter, string longer, int row
     }
 }
 
-
+/// levensteinova vzdálenost optimálního podřetězce končící na této pozici
 vector<vector<int>> ld_apx_search(string shorter, string longer, bool print_table) {
     int len1 = (int) shorter.length();
     int len2 = (int) longer.length();
@@ -136,7 +136,7 @@ vector<vector<int>> ld_apx_search(string shorter, string longer, bool print_tabl
 
 
 
-/// Function to calculate the Levenshtein distance between two strings
+/// vzdalenost prefixu P a prefixu T
 int ld_vanilla(string shorter, string longer, bool print_table) {
     int len1 = (int) shorter.length();
     int len2 = (int) longer.length();

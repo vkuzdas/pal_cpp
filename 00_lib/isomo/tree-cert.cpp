@@ -36,7 +36,7 @@ int parent_from_nodes(int p, vector<Node> nodes) {
     return nodes[p].parent;
 }
 
-G cert_from_tree(string cert) {
+G tree_from_cert(string cert) {
     vector<Node> nodes;
     vector<pair<int,int>> edges;
     for (int i = 0; i < cert.size()/2; ++i)
@@ -149,7 +149,10 @@ int main() {
 
 
     cout << endl;
-    G g = cert_from_tree(cert);
+    G g = tree_from_cert(cert);
     string cert2 = cert_from_tree(g.nodes);
     cout << cert2;
+
+    G g2 = tree_from_cert("0011");
+    cout << "done";
 }

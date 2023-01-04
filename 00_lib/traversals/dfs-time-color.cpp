@@ -59,9 +59,21 @@ void recursiveDFS(int current, vector<vector<int>>& adjacencyList, vector<bool>&
 
 
 
+
 ///  ####################################
 ///  ## Depth-First Search -- COLORING ##
 ///  ####################################
+
+// There are a few different ways that coloring can be
+// used in DFS, but one common use is to mark nodes that
+// have been visited or processed in some way. For example,
+// you might use different colors to indicate nodes that have
+// been visited but not yet finished processing, nodes that are
+// currently being processed, and nodes that have been completely processed.
+
+// use coloring in a DFS to solve a maze,
+// to find all the connected components of a graph,
+// or to check if a graph is bipartite.
 
 enum Color { WHITE, GRAY, BLACK };
 /// CHATGPT
@@ -99,6 +111,10 @@ void colorDFS(int start, vector<vector<int>>& adjacencyList) {
 ///  ## Depth-First Search -- Timestamps ##
 ///  ######################################
 
+// Determine the order in which nodes were first visited by the DFS.
+// Identify the shortest path between two nodes in a graph.
+// Determine the length of the longest path in a graph.
+// Calculate the total time it takes for the DFS to visit all the nodes in a graph.
 
 int timeStamp = 0;
 /// CHATGPT
