@@ -75,21 +75,51 @@ int cost(char c1, char c2) {
     }
 }
 
+
+vector<pair<int,int>> START_ENDS{};
+
+void traceback_helper(vector<vector<int>> dp, const vector<vector<Cell>>& op, string pattern, string text, pair<int,int> start_end, int row, int col) {
+
+    // base case rekurze
+    if(row == 0 || col == 0) {
+        start_end.first = col;
+        START_ENDS.push_back(start_end);
+        return;
+    }
+
+    Cell c = op[row][col];
+    if(c.rep) traceback_helper(dp, op, pattern, text, start_end, row-1, col-1);
+    if(c.ins) traceback_helper(dp, op, pattern, text, start_end, row-1, col);
+    if(c.del) traceback_helper(dp, op, pattern, text, start_end, row, col-1);
+
+}
+
+
 /// kolik existuje podretezcu TEXTu aby LD = k?
-// projdeme spodni radek tabulky, zde identifikujeme bunky kde hodnota <= tab
-//void ld_traceback(vector<vector<int>> tab, string pattern, string text, int k) {
-//    vector<int> last_row = tab[pattern.length()];
-//
-//    for (int col = 0; col < last_row.size(); ++col) {
-//        int v = last_row[col];
-//        /// pro kazdy prvek v poslednim radku <= k
-//        if(v <= k) {
-//            char p = pattern[]
-//            char t = pattern[]
-//
-//        }
-//    }
-//}
+// projdeme spodni radek tabulky, zde identifikujeme bunky kde hodnota <= k
+void ld_traceback(vector<vector<int>> dp, const vector<vector<Cell>>& op, string pattern, string text, int k) {
+    int row = pattern.length();
+    vector<int> last_row = dp[row];
+
+    for (int col = 0; col < last_row.size(); ++col) {
+        int v = last_row[col];
+
+        /// pro kazdy prvek v poslednim radku ktery <= k
+        if(v <= k) {
+            Cell c = op[pattern.length()][col];
+            pair<int, int> start_end = {INT32_MAX, col-1};
+            if(c.rep) {
+                traceback_helper(dp, op, pattern, text, start_end, row-1, col-1);
+            }
+            if(c.ins) {
+                traceback_helper(dp, op, pattern, text, start_end, row-1, col);
+            }
+            if(c.del) {
+                traceback_helper(dp, op, pattern, text, start_end, row, col-1);
+            }
+        }
+    }
+}
 
 
 
@@ -150,7 +180,7 @@ void traceback_rec(vector<vector<int>> D, string pattern, string text, int row, 
 }
 
 /// levensteinova vzdálenost optimálního podřetězce končící na této pozici
-vector<vector<int>> ld_apx_search(string pattern, string text, bool print_table) {
+pair<vector<vector<int>>,vector<vector<Cell>>>  ld_apx_search(string pattern, string text, bool print_table) {
     int p_len = (int) pattern.length();
     int t_len = (int) text.length();
 
@@ -197,7 +227,7 @@ vector<vector<int>> ld_apx_search(string pattern, string text, bool print_table)
         op_dbg(pattern, text, op);
     }
 //    cout << dp[p_len][t_len]
-    return dp;
+    return {dp, op};
 }
 
 
@@ -255,8 +285,14 @@ int ld_vanilla(string shorter, string longer, bool print_table) {
 
 int main() {
 
-    auto dp = ld_apx_search("old", "coldcolt", true);
-//    ld_traceback(dp, "old", "coldcolt", 1);
+    string text = "coldcolt";
+    string pattern = "old";
+    auto a = ld_apx_search("old", "coldcolt", true);
+    ld_traceback(a.first, a.second, "old", "coldcolt", 1);
+    for (auto p : START_ENDS) {
+        cout << text.substr(p.first, p.second-p.first+1) << endl;
+    }
+    cout << "done";
 
 
 
