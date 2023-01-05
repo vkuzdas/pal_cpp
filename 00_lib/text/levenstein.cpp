@@ -7,7 +7,6 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include <stack>
 
 using namespace std;
 
@@ -78,7 +77,12 @@ int cost(char c1, char c2) {
 
 vector<pair<int,int>> START_ENDS{};
 
-void traceback_helper(vector<vector<int>> dp, const vector<vector<Cell>>& op, string pattern, string text, pair<int,int> start_end, int row, int col) {
+void traceback_helper(const vector<vector<int>>& dp,
+                      const vector<vector<Cell>>& op,
+                      const string& pattern,
+                      const string& text,
+                      pair<int,int> start_end,
+                      int row, int col) {
 
     // base case rekurze
     if(row == 0 || col == 0) {
@@ -97,7 +101,10 @@ void traceback_helper(vector<vector<int>> dp, const vector<vector<Cell>>& op, st
 
 /// kolik existuje podretezcu TEXTu aby LD = k?
 // projdeme spodni radek tabulky, zde identifikujeme bunky kde hodnota <= k
-void ld_traceback(vector<vector<int>> dp, const vector<vector<Cell>>& op, string pattern, string text, int k) {
+void ld_traceback(vector<vector<int>> dp,
+                  const vector<vector<Cell>>& op,
+                  const string& pattern,
+                  const string& text, int k) {
     int row = pattern.length();
     vector<int> last_row = dp[row];
 
@@ -122,62 +129,6 @@ void ld_traceback(vector<vector<int>> dp, const vector<vector<Cell>>& op, string
 }
 
 
-
-
-void traceback_ite(vector<vector<int>> tab, string pattern, string text, int row, int col) {
-    stack<pair<int, int>> st;
-    st.push(make_pair(row, col));
-
-    while (!st.empty()) {
-        pair<int, int> p = st.top();
-        st.pop();
-
-        row = p.first;
-        col = p.second;
-
-        int curr_cell = tab[row][col];
-        int del_cell = tab[row][col - 1];   // segfaults
-        int ins_cell = tab[row - 1][col];   // segfaults
-        int rep_cell = tab[row - 1][col - 1];   // segfaults
-
-        if (row > 0 && col > 0) {
-            if (curr_cell == rep_cell + cost(pattern[row], text[col])) {
-                st.push({row - 1, col - 1});
-                printf("%c", text[min(row - 1, col - 1)]);
-            }
-            else if (curr_cell == ins_cell + 1) {
-                st.push({row - 1, col});
-                printf("%c", text[min(row - 1, col - 1)]);
-            }
-            else if (curr_cell == del_cell + 1) {
-                st.push({row, col - 1});
-                printf("%c", text[min(row - 1, col - 1)]);
-            }
-        }
-    }
-}
-
-void traceback_rec(vector<vector<int>> D, string pattern, string text, int row, int col) {
-    if (row > 0 && col > 0) {
-        int curr_cell = D[row][col];
-        int del_cell = D[row][col - 1];
-        int ins_cell = D[row - 1][col];
-        int rep_cell = D[row - 1][col - 1];
-
-        if (curr_cell == rep_cell + cost(pattern[row], text[col])) {
-            traceback_rec(D, pattern, text, row - 1, col - 1);
-            printf("%c %c", pattern[row - 1], text[col - 1]);
-        }
-        if (curr_cell == ins_cell + 1) {
-            traceback_rec(D, pattern, text, row - 1, col);
-            printf("%c -", pattern[row - 1]);
-        }
-        if (curr_cell == del_cell + 1) {
-            traceback_rec(D, pattern, text, row, col - 1);
-            printf("- %c", text[col - 1]);
-        }
-    }
-}
 
 /// levensteinova vzdálenost optimálního podřetězce končící na této pozici
 pair<vector<vector<int>>,vector<vector<Cell>>>  ld_apx_search(string pattern, string text, bool print_table) {
