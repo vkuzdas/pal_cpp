@@ -220,16 +220,15 @@ int main() {
         }
         ptr++;
     }
-    set<int> walked_points;
+
+    int walked_points = 0;
     for (int wc : walked_comps) {
-        for(int wc_node : components[wc]) {
-            walked_points.insert(wc_node);
-        }
+        walked_points += (int)components[wc].size();
     }
 
 
 
-    cout << LONGEST_PATH << " " << walked_points.size() << endl;
+    cout << LONGEST_PATH << " " << walked_points << endl;
 
 }
 
