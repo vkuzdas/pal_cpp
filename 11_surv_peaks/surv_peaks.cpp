@@ -98,7 +98,7 @@ vector<vector<int>> tarjan_scc_adj(vector<vector<int>> &adj, vector<int> &comp_o
 }
 
 
-vector<set<int>> condense_graph(vector<vector<int>> adj,
+vector<unordered_set<int>> condense_graph(vector<vector<int>> adj,
                     int components_size,
                     vector<int> comp_of) {
     // kondenzace komponent:
@@ -106,7 +106,7 @@ vector<set<int>> condense_graph(vector<vector<int>> adj,
     // pro kazdej uzel v ADJ
             // 1) v jake je komponente
             // 2) do kterych uzlu vedou jejich hrany (do jakych komponent)
-    vector<set<int>> adj_cond(components_size);
+    vector<unordered_set<int>> adj_cond(components_size);
     for (int src = 0; src < adj.size(); ++src) {
         int src_component = comp_of[src];
         for (int d = 0; d < adj[src].size(); ++d) {
@@ -120,52 +120,61 @@ vector<set<int>> condense_graph(vector<vector<int>> adj,
     return adj_cond;
 }
 
-vector<Path> PATHS; // TODO: muze to bejt PQ
+vector<Path> PATHS;
 int LONGEST_PATH = 0;
 
 
-void recursiveDFS(int current, vector<set<int>>& adjacencyList, int CP_comp, Path curr_path) {
+void rec_DFS_to_CP(int current, vector<unordered_set<int>>& adjacencyList, int CP_comp, Path curr_path) {
     // Process the current node here
     curr_path.visited[current] = true;
-    curr_path.sequence.push_back(current);
-    if (current == CP_comp) {
-        curr_path.contains_CP = true;
-    }
-
-
-    bool curr_node_is_final = true;
-    for (int neighbor : adjacencyList[current]) {
-        if (!curr_path.visited[neighbor]) {
-            curr_node_is_final = false;
-            recursiveDFS(neighbor, adjacencyList, CP_comp, curr_path);
-        }
-    }
-    // pokud bychom se vraceli nebo pokud jsme v komponente ktera nikam nevede zapisujeme path
-    if (curr_node_is_final && curr_path.contains_CP) {
+    if(current == CP_comp) {
         PATHS.push_back(curr_path);
         LONGEST_PATH = max(LONGEST_PATH, (int)curr_path.sequence.size());
+        return;
+    }
+    curr_path.sequence.push_back(current);
+
+
+    for (int neighbor : adjacencyList[current]) {
+        if (!curr_path.visited[neighbor]) {
+            rec_DFS_to_CP(neighbor, adjacencyList, CP_comp, curr_path);
+        }
     }
 }
 
+vector<int> comp_w_most_parents;
+vector<bool> visited_from_CP;
+int MOST_PARENTS = 0;
 
-void ite_DFS(int start, vector<set<int>>& adjacencyList, int CP_comp, const Path& curr_path) {
-    stack<int> S;
+
+void bfs_from_CP(int start, vector<unordered_set<int>>& adjacencyList, vector<vector<int>>& parents) {
+    queue<int> Q;
     vector<bool> visited(adjacencyList.size(), false);
 
-    S.push(start);
+    Q.push(start);
     visited[start] = true;
 
-    while (!S.empty()) {
-        int current = S.top();
-        S.pop();
+    while (!Q.empty()) {
+        int curr = Q.front(); Q.pop();
 
+        // Process the curr node here
 
-        // Process the current node here
-
-        for (int neighbor : adjacencyList[current]) {
+        for (int neighbor : adjacencyList[curr]) {
             if (!visited[neighbor]) {
-                S.push(neighbor);
+                Q.push(neighbor);
                 visited[neighbor] = true;
+                visited_from_CP[neighbor] = true;
+                for(auto par_of_curr : parents[curr]) {
+                    parents[neighbor].push_back(par_of_curr);
+                }
+                int prev_max = MOST_PARENTS;
+                MOST_PARENTS = max(MOST_PARENTS, (int)parents[neighbor].size());
+                if(prev_max == MOST_PARENTS) {
+                    comp_w_most_parents.push_back(neighbor);
+                } else {
+                    comp_w_most_parents.clear();
+                    comp_w_most_parents.push_back(neighbor);
+                }
             }
         }
     }
@@ -189,18 +198,31 @@ int main() {
     vector<int> comp_of(N, INT32_MAX);
     vector<vector<int>> components = tarjan_scc_adj(adj, comp_of, N);
 
-    vector<set<int>> adj_cond = condense_graph(adj, (int)components.size(), comp_of);
+    vector<unordered_set<int>> adj_cond = condense_graph(adj, (int)components.size(), comp_of);
     // dfs ze vsech do vsech
     // v moment kdy jsem v end nodu
     // eviduju sekvenci a zda obsahuje CP
     int CP_comp = comp_of[C];
 
-    for (int i = 0; i < adj_cond.size(); ++i) {
-        vector<bool> visited(adj_cond.size(), false);
-        Path curr_path{false, {}, visited};
-        /// recursive DFS uklada cesty do PATHS
-        recursiveDFS(i, adj_cond, CP_comp, curr_path);
+    vector<vector<int>> parents(components.size());
+    for (int i = 0; i < components.size(); ++i) {
+        parents[i].push_back(i);
     }
+    vector<bool> vfcp(components.size(), false);
+    visited_from_CP = vfcp;
+    bfs_from_CP(CP_comp, adj_cond, parents);
+
+    for (int i = 0; i < adj_cond.size(); i++) {
+        /// recursive DFS uklada cesty do PATHS
+        if(visited_from_CP[i]) continue;
+
+        vector<bool> visited(adj_cond.size(), false);
+        Path curr_path{true, {}, visited};
+
+        rec_DFS_to_CP(i, adj_cond, CP_comp, curr_path);
+    }
+
+
     // najdi nejdelsi pathsy ktere obsahuji CP
 
     sort(PATHS.begin(), PATHS.end());
@@ -208,8 +230,6 @@ int main() {
 
     set<int> walked_comps;
 
-    int visit_points = 0;
-    int lp = LONGEST_PATH;
     int ptr = 0;
     while (true) {
         // pro kazdou LONGEST cestu z ni vytahneme jeji komponenty
@@ -220,13 +240,20 @@ int main() {
         }
         ptr++;
     }
+    for (const auto& pars : parents) {
+        if(pars.size() == MOST_PARENTS) {
+            for(auto par : pars) {
+                walked_comps.insert(par);
+            }
+        }
+    }
 
     int walked_points = 0;
     for (int wc : walked_comps) {
         walked_points += (int)components[wc].size();
     }
 
-
+    LONGEST_PATH += MOST_PARENTS;
 
     cout << LONGEST_PATH << " " << walked_points << endl;
 
