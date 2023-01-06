@@ -16,12 +16,16 @@ using namespace std;
 struct Path {
     bool contains_CP;
     vector<int> sequence;
+    vector<bool> visited;
 
     bool operator<(const Path &rhs) const {
-        return sequence.size() < rhs.sequence.size();
+        return sequence.size() > rhs.sequence.size();
     }
 
-    Path(bool containsCp, const vector<int> &sequence) : contains_CP(containsCp), sequence(sequence) {}
+    Path(bool containsCp, const vector<int> &sequence, const vector<bool> &visited) : contains_CP(containsCp),
+                                                                                      sequence(sequence),
+                                                                                      visited(visited) {}
+
 };
 
 
@@ -104,9 +108,6 @@ vector<set<int>> condense_graph(vector<vector<int>> adj,
             // 2) do kterych uzlu vedou jejich hrany (do jakych komponent)
     vector<set<int>> adj_cond(components_size);
     for (int src = 0; src < adj.size(); ++src) {
-        if(src == 9 || src == 14 || src == 10|| src == 15) {
-            cout << "bug";
-        }
         int src_component = comp_of[src];
         for (int d = 0; d < adj[src].size(); ++d) {
             int dest = adj[src][d];
@@ -120,37 +121,34 @@ vector<set<int>> condense_graph(vector<vector<int>> adj,
 }
 
 vector<Path> PATHS; // TODO: muze to bejt PQ
+int LONGEST_PATH = 0;
 
 
-void recursiveDFS(int current, vector<set<int>>& adjacencyList, int CP_comp, Path curr_path, vector<bool>& visited) {
+void recursiveDFS(int current, vector<set<int>>& adjacencyList, int CP_comp, Path curr_path) {
     // Process the current node here
-    visited[current] = true;
+    curr_path.visited[current] = true;
     curr_path.sequence.push_back(current);
     if (current == CP_comp) {
         curr_path.contains_CP = true;
     }
-    // pokud bychom se vraceli
-    // nebo pokud jsme v komponente ktera nikam nevede
-    // zapisujeme path
 
 
     bool curr_node_is_final = true;
     for (int neighbor : adjacencyList[current]) {
-        if (!visited[neighbor]) {
+        if (!curr_path.visited[neighbor]) {
             curr_node_is_final = false;
-            recursiveDFS(neighbor, adjacencyList, CP_comp, curr_path, visited);
+            recursiveDFS(neighbor, adjacencyList, CP_comp, curr_path);
         }
     }
+    // pokud bychom se vraceli nebo pokud jsme v komponente ktera nikam nevede zapisujeme path
     if (curr_node_is_final && curr_path.contains_CP) {
-        if(curr_path.sequence[curr_path.sequence.size()-1] == 3) {
-            cout << "bug";
-        }
         PATHS.push_back(curr_path);
+        LONGEST_PATH = max(LONGEST_PATH, (int)curr_path.sequence.size());
     }
 }
 
 
-void ite_DFS(int start, vector<set<int>>& adjacencyList, int CP_comp, Path curr_path) {
+void ite_DFS(int start, vector<set<int>>& adjacencyList, int CP_comp, const Path& curr_path) {
     stack<int> S;
     vector<bool> visited(adjacencyList.size(), false);
 
@@ -198,20 +196,40 @@ int main() {
     int CP_comp = comp_of[C];
 
     for (int i = 0; i < adj_cond.size(); ++i) {
-        Path curr_path{false, {}};
         vector<bool> visited(adj_cond.size(), false);
+        Path curr_path{false, {}, visited};
         /// recursive DFS uklada cesty do PATHS
-        if(i == 10) {
-            cout << "bug";
-        }
-        recursiveDFS(i, adj_cond, CP_comp, curr_path, visited);
+        recursiveDFS(i, adj_cond, CP_comp, curr_path);
     }
     // najdi nejdelsi pathsy ktere obsahuji CP
 
     sort(PATHS.begin(), PATHS.end());
 
 
-    cout << "done";
+    set<int> walked_comps;
+
+    int visit_points = 0;
+    int lp = LONGEST_PATH;
+    int ptr = 0;
+    while (true) {
+        // pro kazdou LONGEST cestu z ni vytahneme jeji komponenty
+        Path curr = PATHS[ptr];
+        if(curr.sequence.size() != LONGEST_PATH) break;
+        for (int i = 0; i < curr.sequence.size(); ++i) {
+            walked_comps.insert(curr.sequence[i]);
+        }
+        ptr++;
+    }
+    set<int> walked_points;
+    for (int wc : walked_comps) {
+        for(int wc_node : components[wc]) {
+            walked_points.insert(wc_node);
+        }
+    }
+
+
+
+    cout << LONGEST_PATH << " " << walked_points.size() << endl;
 
 }
 
