@@ -7,52 +7,62 @@
 #include <string>
 #include <stack>
 #include <set>
+#include <map>
 
 
 using namespace std;
 
 
-struct C_Scheme {
-    vector<int> pos;
-    int clip_cost;
-    int len;
-    bool dont_clip;
-    string value;
+int NA = -1;
+int REPLACE = 0;
 
-    C_Scheme() {}
 
-};
 
-struct Result {
-    int pos;
-    int len;
-    int cost;
 
-    Result() {};
 
-    Result(int pos, int len, int cost) : pos(pos), len(len), cost(cost) {}
 
-    // pokud je cost1 = cost2, vybereme ten kratsi
-    // pokud jsou stejne dlouhe, vybereme ten blizsi
-    bool operator < (const Result& res) const { // tento res je mensi
-        if (cost < res.cost)
-            return true;
-        if (cost > res.cost)
-            return false;
 
-        /// cost se rovnaji
-        if (len < res.len)
-            return true;
-        if (len > res.len)
-            return false;
+void ld_dbg(string pattern, string text, vector<vector<int>> dp) {
+    // print dlouheho stringu nahore
+    cout << "    ";
+    for(char c : text) cout << c << " ";
+    cout << endl;
 
-        /// len se rovnaji
-        if (pos < res.pos)
-            return true;
-
-        return false;
+    for (int i = 0; i < dp.size(); ++i) {
+        if(i != 0) cout << pattern[i - 1] << " ";
+        if(i == 0) cout << "  ";
+        for (int j = 0; j < dp[0].size(); ++j) {
+            if(dp[i][j] == -1) {
+                cout << "." << " ";
+            } else {
+                cout << dp[i][j] << " ";
+            }
+        }
+        cout << endl;
     }
-};
+}
+
+void op_dbg(string pattern, string text, vector<vector<int>> op) {
+    // print dlouheho stringu nahore
+    cout << "    ";
+    for(char c : text) cout << c << " ";
+    cout << endl;
+
+    for (int i = 0; i < op.size(); ++i) {
+        if(i != 0) cout << pattern[i - 1] << " ";
+        if(i == 0) cout << "  ";
+        for (int j = 0; j < op[0].size(); ++j) {
+            if(op[i][j] == -1) {
+                cout << "-1" << " ";
+            } else if(op[i][j] == REPLACE) {
+                cout << "-1" << " ";
+            } else {
+                cout << op[i][j] << " ";
+            }
+        }
+        cout << endl;
+    }
+}
 
 
 
@@ -74,16 +84,6 @@ int minimum(int a, int b, int c) {
     return min(min(a, b), c);
 }
 
-int get_replace_cost(string word1, string word2, int RF) {
-    int total = 0;
-    for (int i = 0; i < word1.length(); ++i) {
-        int diff = word1[i] - word2[i];
-        if(diff < 0)
-            diff = diff * -1;
-        total += (diff * RF);
-    }
-    return total;
-}
 
 vector<int> boyerMoore(string pattern, string text) {
     vector<int> positions;
@@ -101,7 +101,7 @@ vector<int> boyerMoore(string pattern, string text) {
         while (j >= 0 && pattern[j] == text[shift + j])
             j--;
         if (j < 0) {
-            positions.push_back(shift);
+            positions.push_back(shift+pattern.length()-1);
 //            std::cout << "pattern occurs at shift = " << shift << std::endl;
             shift += (shift + m < n) ? m - badchar[text[shift + m]] : 1;
         } else {
@@ -207,82 +207,219 @@ string unwind_mtx(vector<vector<char>>& mtx) {
     return res;
 }
 
-int get_clip_cost(const string &scheme, int CF) {
-    char base = 'a' - 1;
-    if (scheme.length() == 1)
-        return (scheme[0] - base) * CF;
 
-    int size_of_first = scheme[0] - base;
-    int size_of_last = scheme[scheme.length()-1] - base;
+// pozice stringu -> indexy clip schemes
+vector<vector<int>> clips_in_chain(const string& chain, vector<string> clip_schemes) {
+    vector<int> e;
+    vector<vector<int>> clips_on_pos(chain.length(), e);
 
-    return (size_of_first + size_of_last) * CF;
+    for (int sch_idx = 0; sch_idx < clip_schemes.size(); ++sch_idx) {
+
+        /// pro kazde schema zjistime jeho pozice
+        string scheme = clip_schemes[sch_idx];
+        vector<int> positions_in_chain = boyerMoore(scheme, chain);
+
+        /// kazdou pozici zaneseme do mapy v paru {pozice_v_chainu, pozice_schemu_ve_vectoru}
+        for (int pos : positions_in_chain) {
+            auto other_sch_positions = clips_on_pos[pos];
+            if (other_sch_positions.empty()) {
+                clips_on_pos[pos].push_back(sch_idx);
+            }
+            else {
+                other_sch_positions.push_back(sch_idx);
+                clips_on_pos[pos] = other_sch_positions;
+            }
+        }
+    }
+    return clips_on_pos;
 }
 
-vector<C_Scheme> init_C_Schemes(const string& demand, const string& chain, const vector<string>& schemes, int CF) {
-    vector<C_Scheme> res;
-    for (const string& sch : schemes) {
-        C_Scheme curr;
-        curr.pos = boyerMoore(sch, chain);
-        curr.value = sch;
-        curr.len = sch.length();
-        curr.clip_cost = get_clip_cost(sch,CF);
-        curr.dont_clip = (!boyerMoore(sch, demand).empty());
+int calc_repl_cost(vector<vector<int>> &dp, const string &pattern, const string &text, int r, int c, int RF) {
+    char pattern_char = pattern[r-1];
+    char text_char = text[c-1];
+    int diff = abs(pattern_char - text_char);
+
+    int prev_repl_cost = dp[r-1][c-1];
+    int total_repl_cost = prev_repl_cost + (diff * RF);
+
+    return total_repl_cost;
+}
+
+
+// vraci cenu nejnizsiho clip schemu na danem miste textu
+pair<int, int> calc_min_clip_len(
+        vector<vector<int>> &dp, const string &pattern, const string &text,
+        int r, int c, int CF,
+        vector<vector<int>> &clips_on_pos, const vector<string> &clip_schemes) {
+
+
+    int current_text_pos = c-1;
+    vector<int> clips_on_current = clips_on_pos[current_text_pos];
+
+    if(clips_on_current.empty()) {
+        return {INT32_MAX, 0};
     }
-    return res;
+    else {
+        int best_cost = INT32_MAX;
+        int best_len = INT32_MAX;
+        for (int sch_idx : clips_on_current) {
+            string scheme = clip_schemes[sch_idx];
+            if(dp[r][c - scheme.length()] == NA) {
+                // clip zasahuje do trojuhelniku
+                continue;
+            }
+            else {
+                /// ke cost se musi pricist cena co je o delku clipu dozadu
+                char first = scheme[0] - 'a' + 1;
+                char last = scheme.back() - 'a' + 1;
+                int cost = (first + last) * CF;
+                int cost_of_scheme_len_back = dp[r][c-scheme.length()];
+                cost += cost_of_scheme_len_back;
+                if(scheme.length() == 1) cost = (first * CF) + cost_of_scheme_len_back;
+                if(cost < best_cost) {
+                    best_cost = cost;
+                    best_len = scheme.length();
+                } else {
+                    if (cost == best_cost) {
+                        if(scheme.length() < best_len) {
+                            best_cost = cost;
+                            best_len = scheme.length();
+                        }
+                        // kdyz jsou stejne dlouhe i stejne drahe, je to jedno
+                    }
+                    // kdyz je best cost mensi, nic neaktualizuju
+                }
+            }
+        }
+        return {best_cost, best_len};
+    }
+}
+
+pair<vector<vector<int>>, vector<vector<int>>> leven_clip_replace(
+        const string& pattern, const string& text,
+        int CF, int RF,
+        vector<vector<int>>& clips_on_pos, const vector<string>& clip_schemes, bool print_tables) {
+
+    int p_len = (int) pattern.length();
+    int t_len = (int) text.length();
+
+    vector<vector<int>> dp(p_len + 1, vector<int>(t_len + 1));
+    vector<vector<int>> op(p_len + 1, vector<int>(t_len + 1));
+
+    /// init leveho trojuhelniku
+    for (int r = 1; r <= p_len; r++) {
+        for (int c = 0; c < r; ++c) {
+            dp[r][c] = NA;
+            op[r][c] = NA;
+        }
+    }
+//    ld_dbg(pattern, text, dp);
+
+
+    for (int r = 1; r <= p_len; r++) {
+        for (int c = r; c <= t_len; c++) {
+            // zjisti replace
+            // zjisti min(clip) a jeho delku
+            // na pole zapis minimum obou, do OP zda jsi delal replace nebo clip
+            int replace = calc_repl_cost(dp, pattern, text, r, c, RF);
+
+            pair<int, int> clip_len = calc_min_clip_len(dp, pattern, text, r, c, CF, clips_on_pos, clip_schemes);
+
+            int min_clip = clip_len.first;
+            int len = clip_len.second;
+            int m = min(replace, min_clip);
+            dp[r][c] = m;
+
+            /// bud jsme udelali replace a nebo clip
+            if(m == replace) {
+                op[r][c] = REPLACE;
+            }
+            else if(m == min_clip) {
+                op[r][c] = len;
+            }
+
+        }
+    }
+
+    if(print_tables) {
+        ld_dbg(pattern, text, dp);
+        op_dbg(pattern, text, op);
+    }
+//    cout << dp[p_len][t_len]
+    return {dp, op};
+}
+
+pair<int, int> find_min(vector<vector<int>> dp, string demand) {
+    vector<int> last_row = dp[demand.length()];
+    int min = INT32_MAX;
+    int leftest = last_row.size();
+    // do velikost demand.length() je v dp trojuhelnik
+    for (int i = demand.length(); i < last_row.size(); ++i) {
+        int candidate = last_row[i];
+        if(candidate < min) {
+            min = candidate;
+            leftest = i;
+        } else if (candidate == min) {
+            if (i < leftest) {
+                min = candidate; // asi neni treba
+                leftest = i;
+            }
+        }
+    }
+
+    return {min, leftest};
 }
 
 int main() {
-
     /// Read input
     int R,C,LD,CS,CF,RF;
     cin >> R >> C >> LD >> CS >> CF >> RF;
     vector<vector<char>> mtx = read_mtx(R, C);
     string demand;
     cin >> demand;
-    vector<string> clip_schemes_plain = read_clip_schemes(CS);
+    vector<string> clip_schemes = read_clip_schemes(CS);
 
+    /// unwind original chain into single long string
     string chain = unwind_mtx(mtx);
-    vector<C_Scheme> C_Schemes = init_C_Schemes(demand, chain, clip_schemes_plain, CF);
-//    cout << chain;
+
+    /// where are clips in the string
+    vector<vector<int>> clips_on_pos = clips_in_chain(chain, clip_schemes);
+
+    pair<vector<vector<int>>, vector<vector<int>>> dp_op =
+            leven_clip_replace(demand, chain, CF, RF, clips_on_pos, clip_schemes, false);
+
+    vector<vector<int>> dp = dp_op.first;
+    vector<vector<int>> op = dp_op.second;
+
+    // najdeme ve spodnim radku minimum nejvice vlevo
+    pair<int, int> min_pos = find_min(dp, demand);
+    int cost = min_pos.first;
+
+    // od minima jdeme doleva nahoru "traceback" abychom zjistili kde zacal cut
+    int c = min_pos.second;
+    int r = demand.length();
 
 
-    Result best = {INT32_MAX, INT32_MAX, INT32_MAX};
-    vector<Result> r;
-    for(const C_Scheme& cs : C_Schemes) {
-        for (auto pos : cs.pos) {
 
-            // 1) CUT-OUT
-            string trimmed = chain.substr(0,pos) + chain.substr(pos+cs.len, chain.length());
 
-            int start, end;
-            if(demand.length() == pos || demand.length() < pos) // demand přečnívá na začátku (nebo je akorát)
-                start = 0;
-            else if (demand.length() > pos) // demand nepřečnívá
-                start = (int)demand.length() - pos;
-
-            end = start + (int)demand.length();
-
-            /// dokud jsme nedojeli na konec textu nebo jsme neprohledali cele okoli
-            while (end <= trimmed.length() && start <= pos) {
-
-                string clip = trimmed.substr(start, demand.length());
-
-                int replace_cost = get_replace_cost(clip, demand, RF);
-                int total_cost = cs.clip_cost + replace_cost;
-//                cout << clip << "  <-" << demand << endl;
-                if(total_cost == 32) {
-                    cout << "bug";
-                }
-                Result best_candidate = Result(start+1, demand.length()+cs.len, total_cost);
-                r.push_back(best_candidate);
-                best = min(best, best_candidate);
-
-                start++;  end++;
-            }
+    for(;;) {
+        if(c == 0 || r == 0) {
+            break;
+        }
+        if(op[r][c] == REPLACE) {
+            c--;
+            r--;
+        }
+        if(op[r][c] != REPLACE) {
+            c = c - op[r][c];
         }
     }
 
-    cout << best.pos << " " << best.len << " " <<  best.cost << endl;
+    int len = min_pos.second - c;
+
+    cout << c+1 << " " << len << " " << cost << endl;
+
+
     return 0;
 }
 
