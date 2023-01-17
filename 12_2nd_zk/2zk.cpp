@@ -11,6 +11,7 @@
 using namespace std;
 
 
+
 struct Edge {
     int src;
     int dst;
@@ -307,8 +308,6 @@ int main() {
             Edge ins_to_A = {pick[0], pick[1],A_is_fast[pick[0]], A_is_fast[pick[1]]};
 
             // INV-prep: existujici hrany v A zahazuju
-            print_choice(ins_to_A, del_from_B);
-
             if(e_exists(A_adj, ins_to_A)) {
                 continue;
             }
@@ -331,7 +330,7 @@ int main() {
             map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj);
 
 
-            print_choice(ins_to_A, del_from_B);
+//            print_choice(ins_to_A, del_from_B);
 
             vector<vector<int>> mapping(adjusted_A_D2.size());
             vector<bool> mapped_A_nodes(adjusted_A_D2.size(), false);
@@ -350,7 +349,6 @@ int main() {
                         int old_deg = old_nei_degs[nei_degree];
                         int new_deg = new_nei_degs[nei_degree];
                         if(old_deg != new_deg) { // zaznamy se nerovnaji-> mame spatnej match adjusted_A_D2 a adjusted_B_D2
-                            cout << "  degs of " << A_node << " and " << B_node << " differ\n";
                             vectors_equal = false;
                             break;
                         }
@@ -366,7 +364,7 @@ int main() {
             bool gen_new = false;
             for (int i = 0; i < mapped_A_nodes.size(); ++i) {
                 if(!mapped_A_nodes[i]) {
-//                    gen_new = true;
+                    gen_new = true;
                     break;
                 }
             }
@@ -374,7 +372,7 @@ int main() {
 //            print_choice(ins_to_A, del_from_B);
 //            cout << "    D2 mapping ok. \n";
 
-            results.push_back({ins_to_A.src, ins_to_A.dst, del_from_B.src, del_from_B.dst});
+            results.emplace_back(ins_to_A.src, ins_to_A.dst, min(del_from_B.src, del_from_B.dst), max(del_from_B.src, del_from_B.dst));
 
 
 
