@@ -23,17 +23,17 @@ struct Edge {
 
 
 void print_choice(Edge &ins_to_A, Edge &del_from_B) {
-
+    setbuf(stdout, nullptr);
     cout << "Del B:  "
-    << del_from_B.src <<
-    "(" << del_from_B.src_fast << ")" << "-" << del_from_B.dst <<
-    "(" << del_from_B.dst_fast << ")   ";
+         << del_from_B.src <<
+         "(" << del_from_B.src_fast << ")" << "-" << del_from_B.dst <<
+         "(" << del_from_B.dst_fast << ")   ";
 
 
     cout << "||  Ins A:    "
-            << ins_to_A.src <<
-            "(" << ins_to_A.src_fast << ")" << "-" << ins_to_A.dst <<
-            "(" << ins_to_A.dst_fast << ")   \n";
+         << ins_to_A.src <<
+         "(" << ins_to_A.src_fast << ")" << "-" << ins_to_A.dst <<
+         "(" << ins_to_A.dst_fast << ")   \n";
 //    for (auto i: pick) {
 //        cout << " " << i;
 //    }
@@ -83,17 +83,19 @@ vector<int> get_d1(const vector<vector<int>>&  adj) {
 
 
 vector<int> adjust_A_D1(vector<int> &A_D1, Edge &ins_to_A) {
-    vector<int> new_d1 = A_D1;
+    vector<int> new_d1;
+    for (auto i : A_D1) new_d1.push_back(i);
     new_d1[ins_to_A.dst] ++;
     new_d1[ins_to_A.src] ++;
     sort(new_d1.begin(), new_d1.end());
     return new_d1;
 }
 
-vector<int> adjust_B_D1(vector<int> &A_D1, Edge &del_from_B) {
-    vector<int> new_d1 = A_D1;
-    new_d1[del_from_B.dst] ++;
-    new_d1[del_from_B.src] ++;
+vector<int> adjust_B_D1(vector<int> &B_D1, Edge &del_from_B) {
+    vector<int> new_d1;
+    for (auto i : B_D1) new_d1.push_back(i);
+    new_d1[del_from_B.dst] --;
+    new_d1[del_from_B.src] --;
     sort(new_d1.begin(), new_d1.end());
     return new_d1;
 }
@@ -108,26 +110,23 @@ bool e_exists(const vector<vector<int>>& adj, Edge &edge) {
     return false;
 }
 
-map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &curr_subset, vector<bool> &in_subset) {
-    map<int, vector<int>> node_d2;
-    for (int i = 0; i < curr_subset.size(); ++i) {
-        vector<int> d2(curr_subset.size(), 0);
-        int curr_node = curr_subset[i];
-        auto neighbors = adj[curr_node];
-        for (int j = 0; j < neighbors.size(); ++j) { // projed vsechny neigh ktere jsou v setu
-            int neighbor = neighbors[j];
-            if(!in_subset[neighbor]) continue;
-            // od neigh degree se musi odecist ty ktere tam nejsou
-            int nei_degree = 0;
-            for (int k = 0; k < adj[neighbor].size(); ++k) { // koukni na neighbors' neighbors, jestli jsou v setu, inkrementuj degree
-                if(in_subset[adj[neighbor][k]]) {
-                    nei_degree++;
-                }
-            }
-            d2[nei_degree]++;
 
+// node -> list kolik ma sousedu o stupni 1,2,3,4,5 ...
+map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &d1) {
+    map<int, vector<int>> node_d2;
+    for (int src = 0; src < adj.size(); ++src) {
+
+        vector<int> neigh_degs(adj.size(), 0);
+
+        for (int dst = 0; dst < adj[src].size(); ++dst) {
+            // pro kazdeho souseda
+            // koukni jaky ma stupen
+            int dst_node = adj[src][dst];
+            int dst_deg = d1[dst_node];
+            neigh_degs[dst_deg]++;
         }
-        node_d2[curr_node] = d2;
+
+        node_d2[src] = neigh_degs;
     }
     return node_d2;
 }
@@ -185,7 +184,10 @@ int main() {
     }
 
     vector<int> A_d1 = get_d1(A_adj);
+    map<int, vector<int>> A_d2 = get_d2(A_adj, A_d1);
+
     vector<int> B_d1 = get_d1(B_adj);
+    map<int, vector<int>> B_d2 = get_d2(B_adj, B_d1);
 
 
 
@@ -203,7 +205,6 @@ int main() {
             if(e_exists(A_adj, ins_to_A)) {
                 continue;
             }
-//            print_choice(ins_to_A, del_from_B);
 
             // 1) Invariant: kolik je na hranach fastu?
             bool f_count_ok = f_count_check(del_from_B, ins_to_A, A_is_fast, B_is_fast);
@@ -212,8 +213,11 @@ int main() {
 
             // 2) Invariant: D1 adjusted
             vector<int> adjusted_A_D1 = adjust_A_D1(A_d1, ins_to_A);
-            vector<int> adjusted_B_D1 = adjust_B_D1(A_d1, ins_to_A);
+            vector<int> adjusted_B_D1 = adjust_B_D1(B_d1, del_from_B);
             if(adjusted_A_D1 != adjusted_B_D1) continue;
+
+            print_choice(ins_to_A, del_from_B);
+
 
 //            // 3) Invariant: D2 adjusted
 
@@ -230,10 +234,10 @@ int main() {
 
 
 
-int _main() {
-    vector<int> a = {1,3,3};
-    vector<int> b = {1,2,3};
-    if(a==b)
-        cout << "equal";
-
-}
+//int _main() {
+//    vector<int> a = {1,3,3};
+//    vector<int> b = {1,2,3};
+//    if(a==b)
+//        cout << "equal";
+//
+//}
