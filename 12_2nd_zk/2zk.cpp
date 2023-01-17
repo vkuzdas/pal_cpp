@@ -10,7 +10,7 @@
 
 using namespace std;
 
-
+#include <climits>
 
 struct Edge {
     int src;
@@ -214,29 +214,184 @@ bool sorted_d1_equal(vector<int> d1_A, vector<int> d1_B) {
 }
 
 //A_d2, adjusted_A_D1, ins_to_A
-map<int, vector<int>> add_to_D2(const map<int, vector<int>>& A_d2, vector<int>& adjusted_A_D1, Edge ins_to_A, vector<vector<int>> &adj) {
-    vector<vector<int>> new_adj(adj);
-    new_adj[ins_to_A.src].push_back(ins_to_A.dst);
-    new_adj[ins_to_A.dst].push_back(ins_to_A.src);
-
-    return get_d2(new_adj, adjusted_A_D1);
+map<int, vector<int>> add_to_D2(const map<int, vector<int>>& A_d2, vector<int>& adjusted_A_D1, Edge ins_to_A, vector<vector<int>> &adj, vector<vector<int>> &new_adj_A) {
+    new_adj_A[ins_to_A.src].push_back(ins_to_A.dst);
+    new_adj_A[ins_to_A.dst].push_back(ins_to_A.src);
+    return get_d2(new_adj_A, adjusted_A_D1);
 }
 
 
 //A_d2, adjusted_A_D1, ins_to_A
-map<int, vector<int>> del_from_D2(const map<int, vector<int>>& A_d2, vector<int>& adjusted_A_D1, Edge del_from_B, vector<vector<int>> &adj) {
-    vector<vector<int>> new_adj(adj);
+map<int, vector<int>> del_from_D2(const map<int, vector<int>>& A_d2, vector<int>& adjusted_A_D1, Edge del_from_B, vector<vector<int>> &adj, vector<vector<int>> &new_adj_B) {
     auto pos = find(
-            new_adj[del_from_B.src].begin(), new_adj[del_from_B.src].end(),
+            new_adj_B[del_from_B.src].begin(), new_adj_B[del_from_B.src].end(),
             del_from_B.dst);
-    new_adj[del_from_B.src].erase(pos);
+    new_adj_B[del_from_B.src].erase(pos);
     pos = find(
-            new_adj[del_from_B.dst].begin(), new_adj[del_from_B.dst].end(),
+            new_adj_B[del_from_B.dst].begin(), new_adj_B[del_from_B.dst].end(),
             del_from_B.src);
-    new_adj[del_from_B.dst].erase(pos);
-
-    return get_d2(new_adj, adjusted_A_D1);
+    new_adj_B[del_from_B.dst].erase(pos);
+    return get_d2(new_adj_B, adjusted_A_D1);
 }
+
+
+
+vector<int> gen_perms(vector<int> &factorials, vector<pair<vector<int>,vector<int>>> &o_n_mapping_pairs, vector<vector<int>> &old_g) {
+
+    vector<vector<int>> perm(factorials.size());
+    for (int i = 0; i < factorials.size(); ++i) {
+        int rank = factorials[i];
+        auto m = o_n_mapping_pairs[i].second;
+        for (int j = 0; j < rank; ++j) {
+            prev_permutation(m.begin(), m.end());
+        }
+        perm[i] = m;
+    }
+    vector<int> index_map(old_g.size());
+    for (int p = 0; p < o_n_mapping_pairs.size(); ++p) {
+        auto pair = o_n_mapping_pairs[p];
+        for (int i = 0; i < pair.first.size(); ++i) {
+            int old_node = pair.first[i];
+            int new_node = perm[p][i];
+            index_map[old_node] = new_node;
+        }
+    }
+    return index_map;
+}
+
+
+int fact(int num) {
+    if (num == 1) return 1;
+    if (num == 2) return 2;
+    if (num == 3) return 9;
+    if (num == 4) return 24;
+    if (num == 5) return 120;
+    if (num == 6) return 720;
+    if (num == 7) return 5040;
+    if (num == 8) return 40320;
+    if (num == 9) return 362880;
+    if (num == 10) return 3628800;
+    return 0;
+}
+
+bool decrement(vector<int> &factorials, vector<int> &factorials_original) {
+    bool carry = false;
+    for (int i = (int)factorials.size(); i-- > 0; ) {
+        int last = factorials[i];
+        if(last == 1) {
+            if(i != 0) {
+                factorials[i] = factorials_original[i];
+                carry = true;
+            }
+            else if(i==0) return false;
+        }
+        else { // if (last != 1)
+            if(carry) {
+                factorials[i] = factorials[i]-1;
+                return true;
+            }
+            else { //if(!carry) {
+                factorials[i] = factorials[i]-1;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool check_mapping(vector<int> &index_map, vector<vector<int>> &adj_A, vector<vector<int>> &adj_B) {
+    for (int i = 0; i < adj_A.size(); ++i) {
+        for (int j = 0; j < adj_A[i].size(); ++j) {
+            int s = i;
+            int d = adj_A[i][j];
+//            pair<int, int> old_edge = {s, d};
+            pair<int, int> new_edge = {index_map[s], index_map[d]};
+            // does such new_edge exist in adj_B?
+            bool edge_exists = false;
+            for (int k = 0; k < adj_B[new_edge.first].size(); ++k) {
+                int new_d = adj_B[new_edge.first][k];
+                if(new_d == new_edge.second) {
+                    edge_exists = true;
+                    break;
+                }
+            }
+            if (!edge_exists) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool test_mappings_edges_OK(vector<vector<int>> &possible_mappings,
+                            vector<vector<int>> &adj_A, vector<vector<int>> &adj_B,
+                            vector<bool> &A_is_fast, vector<bool> &B_is_fast) {
+
+    vector<pair<vector<int>, vector<int>>> B_A_pairing;
+
+    for (int i = 0; i < possible_mappings.size(); ++i) {
+        int mapping_src = i;
+        vector<int> dst_list = possible_mappings[i];
+        if(dst_list.size()==1) {
+            B_A_pairing.push_back({{mapping_src}, dst_list });
+        } else {
+            int dst_mapping_index = INT_MAX;
+            for (int j = 0; j < B_A_pairing.size(); ++j) {
+                if(B_A_pairing[j].second == dst_list) {
+                    dst_mapping_index = j;
+                    break;
+                }
+            }
+            if(dst_mapping_index != INT_MAX) { // dst_mapping je v B_A_pairingu
+                B_A_pairing[dst_mapping_index].first.push_back(mapping_src);
+            } else { // dst_mapping NENI v B_A_pairingu
+                B_A_pairing.push_back({{mapping_src}, dst_list });
+            }
+        }
+    }
+
+    vector<int> factorials;
+    for (int i = 0; i < B_A_pairing.size(); ++i) {
+        int s = (int)B_A_pairing[i].first.size();
+        int f = fact(s);
+        factorials.push_back(f);
+    }
+
+    auto factorials_original = factorials;
+    vector<vector<int>> valid_mappings;
+    do {
+        // TODO: gen_perms lze cacheovat
+        vector<int> index_map = gen_perms(factorials, B_A_pairing, adj_A);
+        bool valid_mapping = check_mapping(index_map, adj_A, adj_B);
+        if(valid_mapping) {
+//            cout << "           [";  for (int n : index_map) cout << n << ", ";  cout << "]\n";
+//            cout << "           valid mapping\n";
+            valid_mappings.push_back(index_map);
+            break;
+        }
+    } while (decrement(factorials, factorials_original));
+
+    vector<int> invalid_mappings;
+    for (int m_idx = 0; m_idx < valid_mappings.size(); ++m_idx) {
+        for (int m_src = 0; m_src < valid_mappings[m_idx].size(); ++m_src) {
+            int m_dst = valid_mappings[m_idx][m_src];
+            if(A_is_fast[m_src] != B_is_fast[m_dst]) {
+                invalid_mappings.push_back(m_idx);
+                break;
+            }
+        }
+    }
+
+    if(valid_mappings.empty()) return false;
+    if(invalid_mappings.size() == valid_mappings.size()) return false;
+    return true;
+}
+
+
+
+
+
+
 
 int main() {
     int N; // # servery
@@ -300,7 +455,8 @@ int main() {
     for (int i = 0; i < B_e_list.size(); ++i) {
         Edge del_from_B = B_e_list[i];
         vector<int> adjusted_B_D1 = adjust_B_D1(B_d1, del_from_B);
-        map<int, vector<int>> adjusted_B_D2 = del_from_D2(B_d2, adjusted_B_D1, del_from_B, B_adj);
+        vector<vector<int>> new_adj_B(B_adj);
+        map<int, vector<int>> adjusted_B_D2 = del_from_D2(B_d2, adjusted_B_D1, del_from_B, B_adj, new_adj_B);
 
         vector<int> pick = {0,1}; // k=2, n = pocet uzlu, tzn vybiram dva uzly z celeho grafu
         do {
@@ -330,7 +486,8 @@ int main() {
             if (ins_to_A.src == 0 && ins_to_A.dst == 5) {
                 cout << "bug\n";
             }
-            map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj);
+            vector<vector<int>> new_adj_A(A_adj);
+            map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj, new_adj_A);
 
 
 //            print_choice(ins_to_A, del_from_B);
@@ -374,13 +531,9 @@ int main() {
                 }
             }
             if (gen_new) continue;
-//            print_choice(ins_to_A, del_from_B);
-//            cout << "    D2 mapping ok. \n";
+            if (!test_mappings_edges_OK(mapping, A_adj, B_adj, A_is_fast, B_is_fast)) continue;
 
             results.emplace_back(ins_to_A.src, ins_to_A.dst, min(del_from_B.src, del_from_B.dst), max(del_from_B.src, del_from_B.dst));
-
-
-
 
         } while (next_K_subset(pick, N));
     }
