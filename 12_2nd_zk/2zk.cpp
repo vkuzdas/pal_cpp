@@ -87,7 +87,6 @@ vector<int> adjust_A_D1(vector<int> &A_D1, Edge &ins_to_A) {
     for (auto i : A_D1) new_d1.push_back(i);
     new_d1[ins_to_A.dst] ++;
     new_d1[ins_to_A.src] ++;
-    sort(new_d1.begin(), new_d1.end());
     return new_d1;
 }
 
@@ -96,7 +95,6 @@ vector<int> adjust_B_D1(vector<int> &B_D1, Edge &del_from_B) {
     for (auto i : B_D1) new_d1.push_back(i);
     new_d1[del_from_B.dst] --;
     new_d1[del_from_B.src] --;
-    sort(new_d1.begin(), new_d1.end());
     return new_d1;
 }
 
@@ -112,7 +110,7 @@ bool e_exists(const vector<vector<int>>& adj, Edge &edge) {
 
 
 // node -> list kolik ma sousedu o stupni 1,2,3,4,5 ...
-map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &d1) {
+map<int, vector<int>> get_d2_A(vector<vector<int>> &adj, vector<int> &d1, Edge &ins_to_A) {
     map<int, vector<int>> node_d2;
     for (int src = 0; src < adj.size(); ++src) {
 
@@ -123,7 +121,37 @@ map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &d1) {
             // koukni jaky ma stupen
             int dst_node = adj[src][dst];
             int dst_deg = d1[dst_node];
-            neigh_degs[dst_deg]++;
+            if(src == ins_to_A.src && dst == ins_to_A.dst) {
+                neigh_degs[dst_deg]++;
+                neigh_degs[dst_deg]++;
+            } else {
+                neigh_degs[dst_deg]++;
+            }
+        }
+
+        node_d2[src] = neigh_degs;
+    }
+    return node_d2;
+}
+
+// node -> list kolik ma sousedu o stupni 1,2,3,4,5 ...
+map<int, vector<int>> get_d2_B(vector<vector<int>> &adj, vector<int> &d1, Edge &del_from_B) {
+    map<int, vector<int>> node_d2;
+    for (int src = 0; src < adj.size(); ++src) {
+
+        vector<int> neigh_degs(adj.size(), 0);
+
+        for (int dst = 0; dst < adj[src].size(); ++dst) {
+            // pro kazdeho souseda
+            // koukni jaky ma stupen
+            int dst_node = adj[src][dst];
+            int dst_deg = d1[dst_node];
+            if(src == del_from_B.src && dst == del_from_B.dst) {
+//                neigh_degs[dst_deg]++;
+//                neigh_degs[dst_deg]++;
+            } else {
+                neigh_degs[dst_deg]++;
+            }
         }
 
         node_d2[src] = neigh_degs;
@@ -132,7 +160,12 @@ map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &d1) {
 }
 
 
-
+bool sorted_d1_equal(vector<int> d1_A, vector<int> d1_B) {
+    sort(d1_A.begin(), d1_A.end());
+    sort(d1_B.begin(), d1_B.end());
+    if(d1_A==d1_B) return true;
+    return false;
+}
 
 int main() {
     int N; // # servery
@@ -184,10 +217,10 @@ int main() {
     }
 
     vector<int> A_d1 = get_d1(A_adj);
-    map<int, vector<int>> A_d2 = get_d2(A_adj, A_d1);
+//    map<int, vector<int>> A_d2 = get_d2(A_adj, A_d1);
 
     vector<int> B_d1 = get_d1(B_adj);
-    map<int, vector<int>> B_d2 = get_d2(B_adj, B_d1);
+//    map<int, vector<int>> B_d2 = get_d2(B_adj, B_d1);
 
 
 
@@ -212,15 +245,65 @@ int main() {
                 continue;
 
             // 2) Invariant: D1 adjusted
+            vector<int> a = {0,3};
+            if(pick == a)
+                cout << "bug";
             vector<int> adjusted_A_D1 = adjust_A_D1(A_d1, ins_to_A);
             vector<int> adjusted_B_D1 = adjust_B_D1(B_d1, del_from_B);
-            if(adjusted_A_D1 != adjusted_B_D1) continue;
 
-            print_choice(ins_to_A, del_from_B);
+            if(!sorted_d1_equal(adjusted_A_D1, adjusted_B_D1))
+                continue;
+
 
 
 //            // 3) Invariant: D2 adjusted
+//            map<int, vector<int>> adjusted_A_D2 = get_d2_A(A_adj, adjusted_A_D1, ins_to_A);
+//            map<int, vector<int>> adjusted_B_D2 = get_d2_B(B_adj, adjusted_B_D1, del_from_B);
 
+            print_choice(ins_to_A, del_from_B);
+
+            vector<vector<int>> mapping(adjusted_A_D2.size());
+            vector<bool> mapped_A_nodes(adjusted_A_D2.size(), false);
+            for (auto const& op : adjusted_A_D2) { // pro vsechny vektory D2 v A
+                int A_node = op.first;
+                vector<int > old_nei_degs = op.second;
+                // najdi tento vektor uvnitr adjusted_B_D2
+                // pokud tam neni, vrat prazdnej mapping
+
+                for (auto const& np : adjusted_B_D2) { // pro vsechny vektory D2 v B
+                    int B_node = np.first;
+                    vector<int> new_nei_degs = np.second;
+                    bool vectors_equal = true;
+
+                    for (int nei_degree = 0; nei_degree < old_nei_degs.size(); ++nei_degree) { // prochazime oba vektory najednou
+                        int old_deg = old_nei_degs[nei_degree];
+                        int new_deg = new_nei_degs[nei_degree];
+                        if(old_deg != new_deg) { // zaznamy se nerovnaji-> mame spatnej match adjusted_A_D2 a adjusted_B_D2
+                            vectors_equal = false;
+                            break;
+                        }
+                    }
+                    if (vectors_equal) {
+                        mapping[A_node].push_back(B_node);
+                        mapped_A_nodes[A_node] = true;
+                    }
+                }
+            }
+//            if(!mapping.empty()) {
+//                cout << "m not empty";
+//            }
+            bool gen_new = false;
+            for (int i = 0; i < mapped_A_nodes.size(); ++i) {
+                if(!mapped_A_nodes[i]) {
+                    gen_new = true;
+                    break;
+//                    cout << "    D2 mapping NOT ok. \n";
+//                    return {};
+                }
+            }
+            if (gen_new) continue;
+            print_choice(ins_to_A, del_from_B);
+            cout << "    D2 mapping ok. \n";
 
 
 
