@@ -327,6 +327,9 @@ int main() {
 
 
 //            // 3) Invariant: D2 adjusted
+            if (ins_to_A.src == 0 && ins_to_A.dst == 5) {
+                cout << "bug\n";
+            }
             map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj);
 
 
@@ -355,8 +358,10 @@ int main() {
                     }
                     if (vectors_equal) {
                         if ((A_is_fast[A_node] && B_is_fast[B_node]) || (!A_is_fast[A_node] && !B_is_fast[B_node])) {
-                            mapping[A_node].push_back(B_node);
-                            mapped_A_nodes[A_node] = true;
+                            if(adjusted_A_D1[A_node] == adjusted_B_D1[B_node]){
+                                mapping[A_node].push_back(B_node);
+                                mapped_A_nodes[A_node] = true;
+                            }
                         }
                     }
                 }
@@ -386,9 +391,6 @@ int main() {
         result r = results[i];
         cout << r.a << " " << r.b << " " << r.c << " " << r.d << endl;
     }
-//    for(auto r : results) {
-//        cout << r.ins.first << " " << r.ins.second << " " << r.del.first << " " << r.ins.second << endl;
-//    }
 }
 
 
