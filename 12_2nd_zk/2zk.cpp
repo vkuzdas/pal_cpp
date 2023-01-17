@@ -461,31 +461,38 @@ int main() {
         vector<int> pick = {0,1}; // k=2, n = pocet uzlu, tzn vybiram dva uzly z celeho grafu
         do {
 
-            Edge ins_to_A = {pick[0], pick[1],A_is_fast[pick[0]], A_is_fast[pick[1]]};
 
+            Edge ins_to_A = {pick[0], pick[1],A_is_fast[pick[0]], A_is_fast[pick[1]]};
+//            if (del_from_B.src == 3 && del_from_B.dst == 0) {
+//                cout << "bug\n";
+//            }
+            result r = {ins_to_A.src, ins_to_A.dst, min(del_from_B.src, del_from_B.dst), max(del_from_B.src, del_from_B.dst)};
             // INV-prep: existujici hrany v A zahazuju
             if(e_exists(A_adj, ins_to_A)) {
                 continue;
             }
 
             // 1) Invariant: kolik je na hranach fastu?
-            bool f_count_ok = f_count_check(del_from_B, ins_to_A, A_is_fast, B_is_fast);
-            if(!f_count_ok)
-                continue;
+//            bool f_count_ok = f_count_check(del_from_B, ins_to_A, A_is_fast, B_is_fast);
+//            if(!f_count_ok)
+//                continue;
 
             // 2) Invariant: D1 adjusted
             vector<int> adjusted_A_D1 = adjust_A_D1(A_d1, ins_to_A);
 
 
             if(!sorted_d1_equal(adjusted_A_D1, adjusted_B_D1))
+            {
+
+
                 continue;
+            }
 
 
 
 //            // 3) Invariant: D2 adjusted
-            if (ins_to_A.src == 0 && ins_to_A.dst == 5) {
-                cout << "bug\n";
-            }
+//            0 1 0 3
+
             vector<vector<int>> new_adj_A(A_adj);
             map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj, new_adj_A);
 
@@ -530,8 +537,14 @@ int main() {
                     break;
                 }
             }
-            if (gen_new) continue;
-            if (!test_mappings_edges_OK(mapping, A_adj, B_adj, A_is_fast, B_is_fast)) continue;
+            if (gen_new) {
+//                cout << "d2 wrong.....  ";
+//                cout << ins_to_A.src << " " << ins_to_A.dst
+//                     << " " << min(del_from_B.src, del_from_B.dst)
+//                     << " " << max(del_from_B.src, del_from_B.dst) << "\n";
+                continue;
+            }
+            if (!test_mappings_edges_OK(mapping, new_adj_A, new_adj_B, A_is_fast, B_is_fast)) continue;
 
             results.emplace_back(ins_to_A.src, ins_to_A.dst, min(del_from_B.src, del_from_B.dst), max(del_from_B.src, del_from_B.dst));
 
