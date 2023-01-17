@@ -11,7 +11,6 @@
 using namespace std;
 
 
-
 struct Edge {
     int src;
     int dst;
@@ -24,13 +23,25 @@ struct Edge {
 
 
 struct result {
-    pair<int, int> ins;
-    pair<int, int> del;
+    int a;
+    int b;
+    int c;
+    int d;
 
-    bool operator < (const result &othr) const {
-        if (ins < othr.ins)
+    bool operator<(const result &rhs) const {
+        if (a < rhs.a)
             return true;
-        return del < othr.del;
+        if (rhs.a < a)
+            return false;
+        if (b < rhs.b)
+            return true;
+        if (rhs.b < b)
+            return false;
+        if (c < rhs.c)
+            return true;
+        if (rhs.c < c)
+            return false;
+        return d < rhs.d;
     }
 
     bool operator>(const result &rhs) const {
@@ -45,7 +56,7 @@ struct result {
         return !(*this < rhs);
     }
 
-    result(const pair<int, int> &ins, const pair<int, int> &del) : ins(ins), del(del) {}
+    result(int a, int b, int c, int d) : a(a), b(b), c(c), d(d) {}
 };
 
 void print_choice(Edge &ins_to_A, Edge &del_from_B) {
@@ -287,6 +298,8 @@ int main() {
 
     for (int i = 0; i < B_e_list.size(); ++i) {
         Edge del_from_B = B_e_list[i];
+        vector<int> adjusted_B_D1 = adjust_B_D1(B_d1, del_from_B);
+        map<int, vector<int>> adjusted_B_D2 = del_from_D2(B_d2, adjusted_B_D1, del_from_B, B_adj);
 
         vector<int> pick = {0,1}; // k=2, n = pocet uzlu, tzn vybiram dva uzly z celeho grafu
         do {
@@ -294,6 +307,8 @@ int main() {
             Edge ins_to_A = {pick[0], pick[1],A_is_fast[pick[0]], A_is_fast[pick[1]]};
 
             // INV-prep: existujici hrany v A zahazuju
+            print_choice(ins_to_A, del_from_B);
+
             if(e_exists(A_adj, ins_to_A)) {
                 continue;
             }
@@ -305,7 +320,7 @@ int main() {
 
             // 2) Invariant: D1 adjusted
             vector<int> adjusted_A_D1 = adjust_A_D1(A_d1, ins_to_A);
-            vector<int> adjusted_B_D1 = adjust_B_D1(B_d1, del_from_B);
+
 
             if(!sorted_d1_equal(adjusted_A_D1, adjusted_B_D1))
                 continue;
@@ -314,9 +329,9 @@ int main() {
 
 //            // 3) Invariant: D2 adjusted
             map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj);
-            map<int, vector<int>> adjusted_B_D2 = del_from_D2(B_d2, adjusted_B_D1, del_from_B, B_adj);
 
-//            print_choice(ins_to_A, del_from_B);
+
+            print_choice(ins_to_A, del_from_B);
 
             vector<vector<int>> mapping(adjusted_A_D2.size());
             vector<bool> mapped_A_nodes(adjusted_A_D2.size(), false);
@@ -335,6 +350,7 @@ int main() {
                         int old_deg = old_nei_degs[nei_degree];
                         int new_deg = new_nei_degs[nei_degree];
                         if(old_deg != new_deg) { // zaznamy se nerovnaji-> mame spatnej match adjusted_A_D2 a adjusted_B_D2
+                            cout << "  degs of " << A_node << " and " << B_node << " differ\n";
                             vectors_equal = false;
                             break;
                         }
@@ -350,14 +366,15 @@ int main() {
             bool gen_new = false;
             for (int i = 0; i < mapped_A_nodes.size(); ++i) {
                 if(!mapped_A_nodes[i]) {
-                    gen_new = true;
+//                    gen_new = true;
                     break;
                 }
             }
             if (gen_new) continue;
-            print_choice(ins_to_A, del_from_B);
-            cout << "    D2 mapping ok. \n";
-            results.push_back({{ins_to_A.src, ins_to_A.dst}, {del_from_B.src, del_from_B.dst}});
+//            print_choice(ins_to_A, del_from_B);
+//            cout << "    D2 mapping ok. \n";
+
+            results.push_back({ins_to_A.src, ins_to_A.dst, del_from_B.src, del_from_B.dst});
 
 
 
@@ -369,7 +386,7 @@ int main() {
     sort(results.begin(), results.end());
     for (int i = 0; i < results.size(); ++i) {
         result r = results[i];
-        cout << r.ins.first << " " << r.ins.second << " " << r.del.first << " " << r.del.second << endl;
+        cout << r.a << " " << r.b << " " << r.c << " " << r.d << endl;
     }
 //    for(auto r : results) {
 //        cout << r.ins.first << " " << r.ins.second << " " << r.del.first << " " << r.ins.second << endl;
