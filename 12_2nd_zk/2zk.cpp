@@ -22,6 +22,32 @@ struct Edge {
 };
 
 
+
+struct result {
+    pair<int, int> ins;
+    pair<int, int> del;
+
+    bool operator < (const result &othr) const {
+        if (ins < othr.ins)
+            return true;
+        return del < othr.del;
+    }
+
+    bool operator>(const result &rhs) const {
+        return rhs < *this;
+    }
+
+    bool operator<=(const result &rhs) const {
+        return !(rhs < *this);
+    }
+
+    bool operator>=(const result &rhs) const {
+        return !(*this < rhs);
+    }
+
+    result(const pair<int, int> &ins, const pair<int, int> &del) : ins(ins), del(del) {}
+};
+
 void print_choice(Edge &ins_to_A, Edge &del_from_B) {
     setbuf(stdout, nullptr);
     cout << "Del B:  "
@@ -69,6 +95,24 @@ bool f_count_check(Edge del_from_B, Edge ins_to_A, const vector<bool>& A_is_fast
     return false;
 }
 
+map<int, vector<int>> get_d2(vector<vector<int>> &adj, vector<int> &d1) {
+    map<int, vector<int>> node_d2;
+    for (int src = 0; src < adj.size(); ++src) {
+
+        vector<int> neigh_degs(adj.size(), 0);
+
+        for (int dst = 0; dst < adj[src].size(); ++dst) {
+            // pro kazdeho souseda
+            // koukni jaky ma stupen
+            int dst_node = adj[src][dst];
+            int dst_deg = d1[dst_node];
+            neigh_degs[dst_deg]++;
+        }
+
+        node_d2[src] = neigh_degs;
+    }
+    return node_d2;
+}
 
 
 // vrati pole sousedu
@@ -121,12 +165,7 @@ map<int, vector<int>> get_d2_A(vector<vector<int>> &adj, vector<int> &d1, Edge &
             // koukni jaky ma stupen
             int dst_node = adj[src][dst];
             int dst_deg = d1[dst_node];
-            if(src == ins_to_A.src && dst == ins_to_A.dst) {
-                neigh_degs[dst_deg]++;
-                neigh_degs[dst_deg]++;
-            } else {
-                neigh_degs[dst_deg]++;
-            }
+            neigh_degs[dst_deg]++;
         }
 
         node_d2[src] = neigh_degs;
@@ -146,12 +185,7 @@ map<int, vector<int>> get_d2_B(vector<vector<int>> &adj, vector<int> &d1, Edge &
             // koukni jaky ma stupen
             int dst_node = adj[src][dst];
             int dst_deg = d1[dst_node];
-            if(src == del_from_B.src && dst == del_from_B.dst) {
-//                neigh_degs[dst_deg]++;
-//                neigh_degs[dst_deg]++;
-            } else {
-                neigh_degs[dst_deg]++;
-            }
+            neigh_degs[dst_deg]++;
         }
 
         node_d2[src] = neigh_degs;
@@ -165,6 +199,31 @@ bool sorted_d1_equal(vector<int> d1_A, vector<int> d1_B) {
     sort(d1_B.begin(), d1_B.end());
     if(d1_A==d1_B) return true;
     return false;
+}
+
+//A_d2, adjusted_A_D1, ins_to_A
+map<int, vector<int>> add_to_D2(const map<int, vector<int>>& A_d2, vector<int>& adjusted_A_D1, Edge ins_to_A, vector<vector<int>> &adj) {
+    vector<vector<int>> new_adj(adj);
+    new_adj[ins_to_A.src].push_back(ins_to_A.dst);
+    new_adj[ins_to_A.dst].push_back(ins_to_A.src);
+
+    return get_d2(new_adj, adjusted_A_D1);
+}
+
+
+//A_d2, adjusted_A_D1, ins_to_A
+map<int, vector<int>> del_from_D2(const map<int, vector<int>>& A_d2, vector<int>& adjusted_A_D1, Edge del_from_B, vector<vector<int>> &adj) {
+    vector<vector<int>> new_adj(adj);
+    auto pos = find(
+            new_adj[del_from_B.src].begin(), new_adj[del_from_B.src].end(),
+            del_from_B.dst);
+    new_adj[del_from_B.src].erase(pos);
+    pos = find(
+            new_adj[del_from_B.dst].begin(), new_adj[del_from_B.dst].end(),
+            del_from_B.src);
+    new_adj[del_from_B.dst].erase(pos);
+
+    return get_d2(new_adj, adjusted_A_D1);
 }
 
 int main() {
@@ -217,12 +276,12 @@ int main() {
     }
 
     vector<int> A_d1 = get_d1(A_adj);
-//    map<int, vector<int>> A_d2 = get_d2(A_adj, A_d1);
+    map<int, vector<int>> A_d2 = get_d2(A_adj, A_d1);
 
     vector<int> B_d1 = get_d1(B_adj);
-//    map<int, vector<int>> B_d2 = get_d2(B_adj, B_d1);
+    map<int, vector<int>> B_d2 = get_d2(B_adj, B_d1);
 
-
+    vector<result> results;
 
 
 
@@ -245,9 +304,6 @@ int main() {
                 continue;
 
             // 2) Invariant: D1 adjusted
-            vector<int> a = {0,3};
-            if(pick == a)
-                cout << "bug";
             vector<int> adjusted_A_D1 = adjust_A_D1(A_d1, ins_to_A);
             vector<int> adjusted_B_D1 = adjust_B_D1(B_d1, del_from_B);
 
@@ -257,10 +313,10 @@ int main() {
 
 
 //            // 3) Invariant: D2 adjusted
-//            map<int, vector<int>> adjusted_A_D2 = get_d2_A(A_adj, adjusted_A_D1, ins_to_A);
-//            map<int, vector<int>> adjusted_B_D2 = get_d2_B(B_adj, adjusted_B_D1, del_from_B);
+            map<int, vector<int>> adjusted_A_D2 = add_to_D2(A_d2, adjusted_A_D1, ins_to_A, A_adj);
+            map<int, vector<int>> adjusted_B_D2 = del_from_D2(B_d2, adjusted_B_D1, del_from_B, B_adj);
 
-            print_choice(ins_to_A, del_from_B);
+//            print_choice(ins_to_A, del_from_B);
 
             vector<vector<int>> mapping(adjusted_A_D2.size());
             vector<bool> mapped_A_nodes(adjusted_A_D2.size(), false);
@@ -284,26 +340,25 @@ int main() {
                         }
                     }
                     if (vectors_equal) {
-                        mapping[A_node].push_back(B_node);
-                        mapped_A_nodes[A_node] = true;
+                        if ((A_is_fast[A_node] && B_is_fast[B_node]) || (!A_is_fast[A_node] && !B_is_fast[B_node])) {
+                            mapping[A_node].push_back(B_node);
+                            mapped_A_nodes[A_node] = true;
+                        }
                     }
                 }
             }
-//            if(!mapping.empty()) {
-//                cout << "m not empty";
-//            }
             bool gen_new = false;
             for (int i = 0; i < mapped_A_nodes.size(); ++i) {
                 if(!mapped_A_nodes[i]) {
                     gen_new = true;
                     break;
-//                    cout << "    D2 mapping NOT ok. \n";
-//                    return {};
                 }
             }
             if (gen_new) continue;
             print_choice(ins_to_A, del_from_B);
             cout << "    D2 mapping ok. \n";
+            results.push_back({{ins_to_A.src, ins_to_A.dst}, {del_from_B.src, del_from_B.dst}});
+
 
 
 
@@ -311,8 +366,14 @@ int main() {
     }
 
 
-
-    cout << "done";
+    sort(results.begin(), results.end());
+    for (int i = 0; i < results.size(); ++i) {
+        result r = results[i];
+        cout << r.ins.first << " " << r.ins.second << " " << r.del.first << " " << r.del.second << endl;
+    }
+//    for(auto r : results) {
+//        cout << r.ins.first << " " << r.ins.second << " " << r.del.first << " " << r.ins.second << endl;
+//    }
 }
 
 
