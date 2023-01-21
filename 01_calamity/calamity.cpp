@@ -26,14 +26,14 @@ int main() {
     // BFS district assign
     vector<int> districts = assign_districts(adj,  D);
 
-    // do prim in D subgraphs
+    // D-krat vytvorime kostru - v kazdem districtu
     int total_cost = 0;
     for (int i = 1; i <= D; ++i) {
         int cost = prim_mst_per_district(adj, districts, i);
         total_cost = total_cost + cost;
     }
 
-    // do prim in the supergraph
+    // graf kondenzujeme a udelam prim v nem
     condense_graph(adj, districts, D);
     total_cost = total_cost + prim_mst(adj, 1);
     cout << total_cost;
@@ -41,10 +41,10 @@ int main() {
 }
 
 /**
- * Graph condensation
- *      merges all nodes from a district into a single node denoted by district ID
- *      edges within the district are erased
- *      d1 -> d2 edges are preserved
+ * Kondenzace grafu
+ *      merguje vsechny nody do jednoho nodu oznaceneho dle district ID
+ *      edge uvnitr districtu prestanou existovat
+ *      d1 -> d2 edge zustanou
  */
 void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D) {
     // kondenzace grafu:
@@ -54,6 +54,7 @@ void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D)
             nei_pair.second = districts[nei_pair.second];
         }
     }
+
     // odstranit edges ktere vedou d1 -> d1
     for (size_t src = 1; src < adj.size(); ++src) {
         vector<wd_pair> replacement;
@@ -67,6 +68,7 @@ void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D)
         }
         adj[src] = replacement;
     }
+
     // move edge from node belonging to dist to original dist node
     for (size_t src = adj.size()-1; src > size_t(D); --src) { // from last src to last D
         for (auto nei_pair : adj[src]) {
@@ -133,29 +135,31 @@ int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, 
 }
 
 /**
- * Assigns district to every city based on city's proximity to district city
- *      (or based on which district has lower id in case proximity is same)
+ * Priradi district do kazdeho mesta na zaklade vzdalenosti k district mestu
+ *      (nebo dle toho kterej district ma nizsi ID pokud vzdalenost je stejna)
  */
 vector<int> assign_districts(vector<vector<pair<int, int>>> &adj, int D) {
     // setup
     vector<int> districts(adj.size());
-    vector<int> traversals(adj.size());
+    vector<int> depth(adj.size());
     queue<int> q;
-    // add all districts to the queue
+
+    // nejdrive pridame vsechny districts do Q
     // lowest city is guaranteed to get to the closest first
     for (int i = 1; i <= D; ++i) {
-        traversals[i] = 0;
+        depth[i] = 0;
         districts[i] = i;
         q.push(i);
     }
 
-    // BFS through graph from all district nodes
+    // BFS ze vsech district nodu
     //   assign depth (from district node) to each node
+    //   priradime hloubku (vzhledem k district node) kazdemu nodu
     while (!q.empty()) {
         int curr = q.front(); q.pop();
         for(auto nei : adj[curr]) {
                 if(districts[nei.second] == 0) {
-                    traversals[nei.second] = traversals[curr] + 1;
+                    depth[nei.second] = depth[curr] + 1;
                     districts[nei.second] = districts[curr];
                     q.push(nei.second);
                 }
