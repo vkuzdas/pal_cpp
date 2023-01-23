@@ -20,44 +20,77 @@ using ci = const int;
 
 
 uint F, Mmax, x0, x;
-vector<int> PRIMES;
+vector<uint> PRIMES;
 int COUNT = 0;
 int FIRST_SIZE = 0;
 int FIRST_INDEX = 0;
 
-vector<int> sieve(int mmax);
+vector<uint> sieve(int mmax, uint lim);
 cll get_A(cll& combs_product, cll& M);
 void search_modulo( const vector<int>& combinations, cll& combs_product,ci c_prev, cll& pfp, ci& size);
 void search_the_combinations(ci& index, ci& size, vector<int>& combs, cll& acc, ci& f);
 
 
-
+//vector<int> primesfirst8 = {2, 3, 5, 7, 11, 13, 17, 19};
+//    int primeMax = Mmax;
+//    for (int t = 0; t < F-1; t++) {
+//        primeMax = primeMax / primesfirst8[t];
+//    }
 
 int main() {
     cin >> F >> Mmax >> x0 >> x;
-    PRIMES = sieve(Mmax);
+    PRIMES = sieve(Mmax, F-1);
     vector<int> combs(F);
     search_the_combinations(FIRST_INDEX, FIRST_SIZE, combs,1, F);
     cout << COUNT << endl;
 }
 
+vector<int> first_primes = {2,3,5,7,11,13,17,19,23,29,31,37};;
 
 
+// hele na zacatek
+//kdyz mas eratosthena
+//tak ho pak generujes jen do toho primeMax
+//namisto do Mmax
+//takze mezi input read a  to generovani cisel to dej
+
+vector<uint> sieve(int mmax, uint lim){
+        // staci nam cisla do sqrt(M_max)
 
 
-vector<int> sieve(int mmax){
-    vector<int> res;
-    vector<bool> primes_erat(mmax, true);
-    primes_erat[0] = false;
-    primes_erat[1] = false;
-    for (int prime = 2; prime < primes_erat.size(); prime++) {
-        if (!primes_erat[prime]) continue;
-        res.push_back(prime);
-        for (int i = prime * prime; i < primes_erat.size(); i += prime) {
-            primes_erat[i] = false;
+    for (int i = 0; i < lim; i++) {
+        mmax = mmax / first_primes[i];
+    }
+
+
+    const uint limit = mmax;
+    vector<bool> A(limit+1, true);
+    for (uint i = 2; i <= limit; ++i) {
+        if(A[i]) {
+            uint i_incr = 0;
+            uint j = i*i + i*i_incr;
+            while (j <= limit) {
+                A[j] = false;
+                i_incr++;
+                j = i*i + i*i_incr;
+            }
         }
     }
-    return res;
+
+    vector<uint> primes;
+
+    for (uint i = 2; i < A.size(); ++i) { // 2 neni validni generator
+        if (A[i]) {
+            // i is prime
+            primes.push_back(i);
+            // valid generator?
+            if(i==2)  {
+                continue;
+            }
+        }
+    }
+
+    return primes;
 }
 
 
