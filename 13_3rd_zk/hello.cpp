@@ -7,6 +7,8 @@
 
 using namespace std;
 using uint = unsigned int;
+using ll = long long;
+using lli = long long int;
 
 
 uint F, Mmax, Xo, x;
@@ -38,28 +40,28 @@ unsigned long modulo_multiplication(const unsigned long& a, const unsigned long&
     return result % m;
 }
 
-bool am_lesser(long long int A, const long long int M) {
+bool am_lesser(lli A, const lli M) {
     return A < M;
 }
 
-bool prod_prod_lesser(const long long int &acc, const vector<uint> &vector, uint& mmax, uint& i) {
+bool prod_prod_lesser(const lli &acc, const vector<uint> &vector, uint& mmax, uint& i) {
     return acc * vector[i] <= Mmax;
 }
 
-void find_M(const uint& size, const vector<uint>& combs, const long long& pf_prod, const int c_prev, const long long& acc){
+void find_M(const uint& size, const vector<uint>& combs, const ll& pf_prod, const int c_prev, const ll& acc){
     for (uint i = size; i < combs.size(); ++i) {
 
         if (prod_prod_lesser(acc, combs, Mmax, i)){
 
-            const long long& M = acc * combs[i];
-            long long A = pf_prod + 1;
+            ll M = acc * combs[i];
+            ll A = pf_prod + 1;
             if(M % 4 == 0) A = pf_prod * 2 + 1;
 
             int C_prev = c_prev;
             if (am_lesser(A, M)){
                 bool AM_coprime = __gcd(A, M) == 1;
                 if (!AM_coprime) continue;
-                long long c = (x - A*Xo) % M;
+                ll c = (x - A*Xo) % M;
                 c = c < 0 ? c + M : c;
                 bool cm_coprime = __gcd(c, M) == 1;
                 bool eq_x = (A*Xo+c)%M == x;
@@ -76,14 +78,17 @@ void find_M(const uint& size, const vector<uint>& combs, const long long& pf_pro
 }
 
 
-void find_combs(const int& index, const int& size, vector<uint>& combs, const long long& pf_prod, const uint& f){
+void find_combs(int& size, vector<uint>& combs, int& index, ll& pf_prod, const uint& f){
     if (size == f){
         find_M(0, combs, pf_prod, 0, pf_prod);
     }else{
         for (int i = index; i < PRIMES.size(); ++i) {
             combs[size] = PRIMES[i];
             if (pf_prod * PRIMES[i] <= Mmax){
-                find_combs(i + 1, size + 1, combs, pf_prod * PRIMES[i], f);
+                int idx = i+1;
+                int sz = size + 1;
+                ll pp = PRIMES[i] * pf_prod;
+                find_combs(sz,  combs, idx, pp, f);
             }else{
                 break;
             }
@@ -104,6 +109,8 @@ int main() {
     PRIMES = sieve(Mmax);
 
     vector<uint> combs(F);
-    find_combs(frist_index, first_size, combs,1, F);
+//    int& size, vector<uint>& combs, int& index, ll& pf_prod, const uint& f
+    ll pf_prod = 1;
+    find_combs(first_size, combs, frist_index,  pf_prod, F);
     cout << COUNT << endl;
 }
