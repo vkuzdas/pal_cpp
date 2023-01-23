@@ -38,27 +38,34 @@ unsigned long modulo_multiplication(const unsigned long& a, const unsigned long&
     return result % m;
 }
 
+bool am_lesser(long long int A, const long long int M) {
+    return A < M;
+}
 
+bool prod_prod_lesser(const long long int &acc, const vector<uint> &vector, uint& mmax, uint& i) {
+    return acc * vector[i] <= Mmax;
+}
 
 void find_M(const uint& size, const vector<uint>& combs, const long long& pf_prod, const int c_prev, const long long& acc){
     for (uint i = size; i < combs.size(); ++i) {
 
-        if (acc * combs[i] <= Mmax){
+        if (prod_prod_lesser(acc, combs, Mmax, i)){
 
             const long long& M = acc * combs[i];
             long long A = pf_prod + 1;
             if(M % 4 == 0) A = pf_prod * 2 + 1;
 
-            auto C_prev = c_prev;
-            if (A < M){
-                if (__gcd(A,M)== 1) {
-
-                    long long c = (x - A*Xo) % M;
-                    c = c < 0 ? c + M : c;
-                    if (__gcd(c, M) == 1 && (A*Xo+c)%M == x) {
-                        COUNT += 1;
-                        C_prev = c;
-                    }
+            int C_prev = c_prev;
+            if (am_lesser(A, M)){
+                bool AM_coprime = __gcd(A, M) == 1;
+                if (!AM_coprime) continue;
+                long long c = (x - A*Xo) % M;
+                c = c < 0 ? c + M : c;
+                bool cm_coprime = __gcd(c, M) == 1;
+                bool eq_x = (A*Xo+c)%M == x;
+                if (cm_coprime  && eq_x) {
+                    COUNT += 1;
+                    C_prev = c;
                 }
             }
             find_M(i, combs, pf_prod, C_prev, M);
