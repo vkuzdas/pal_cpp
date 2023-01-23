@@ -1,8 +1,5 @@
 #include <iostream>
 #include <vector>
-#include<iostream>
-#include<cmath>
-#include <regex>
 #include <algorithm>
 
 using namespace std;
@@ -14,6 +11,9 @@ using lli = long long int;
 uint F, Mmax, Xo, x;
 uint COUNT = 0;
 vector<uint> PRIMES;
+
+uint FIRST_INDEX = 0;
+uint FIRST_SIZE = 0;
 
 
 vector<uint> sieve(uint mmax){
@@ -32,13 +32,7 @@ vector<uint> sieve(uint mmax){
     return result;
 }
 
-unsigned long modulo_multiplication(const unsigned long& a, const unsigned long& b, const unsigned long& m) {
-    unsigned long a_hi = a >> 24, a_lo = a & ((1 << 24) - 1);
-    unsigned long b_hi = b >> 24, b_lo = b & ((1 << 24) - 1);
-    unsigned long result = ((((a_hi*b_hi << 16) % m) << 16) % m) << 16;
-    result += ((a_lo*b_hi+a_hi*b_lo) << 24) + a_lo*b_lo;
-    return result % m;
-}
+
 
 bool am_lesser(lli A, const lli M) {
     return A < M;
@@ -78,21 +72,26 @@ void find_M(const uint& size, const vector<uint>& combs, const ll& pf_prod, cons
 }
 
 
-void find_combs(int& size, vector<uint>& combs, int& index, ll& pf_prod, const uint& f){
-    if (size == f){
-        find_M(0, combs, pf_prod, 0, pf_prod);
-    }else{
-        for (int i = index; i < PRIMES.size(); ++i) {
-            combs[size] = PRIMES[i];
-            if (pf_prod * PRIMES[i] <= Mmax){
-                int idx = i+1;
-                int sz = size + 1;
-                ll pp = PRIMES[i] * pf_prod;
-                find_combs(sz,  combs, idx, pp, f);
-            }else{
+void find_combs(uint& size, vector<uint>& combinations, uint& index, ll& pf_prod, const uint& f){
+
+    /// pokud NEMAME delku stejnou jako prvocisla
+    if (size != f){
+        for (uint i = index; i < PRIMES.size(); ++i) {
+            combinations[size] = PRIMES[i];
+            if (pf_prod * PRIMES[i] > Mmax) {
                 break;
+            } else if (pf_prod * PRIMES[i] <= Mmax) {
+                uint idx = i + 1;
+                uint sz = size + 1;
+                ll pp = PRIMES[i] * pf_prod;
+                find_combs(sz, combinations, idx, pp, f);
             }
         }
+    }
+
+        /// pokud MAME delku stejnou jako prvocisla
+    else if (size == f){
+        find_M(FIRST_SIZE, combinations, pf_prod, FIRST_INDEX, pf_prod);
     }
 
 }
@@ -101,8 +100,7 @@ void find_combs(int& size, vector<uint>& combs, int& index, ll& pf_prod, const u
 
 
 int main() {
-    int frist_index = 0;
-    int first_size = 0;
+
 
 
     cin >> F >> Mmax >> Xo >> x;
@@ -111,6 +109,6 @@ int main() {
     vector<uint> combs(F);
 //    int& size, vector<uint>& combs, int& index, ll& pf_prod, const uint& f
     ll pf_prod = 1;
-    find_combs(first_size, combs, frist_index,  pf_prod, F);
+    find_combs(FIRST_SIZE, combs, FIRST_INDEX,  pf_prod, F);
     cout << COUNT << endl;
 }
