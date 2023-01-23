@@ -8,22 +8,56 @@
 using namespace std;
 
 
-int F, Mmax, Xo, x, G;
-vector<int> primes;
+int F, Mmax, Xo, x, COUNT;
 
 
-void eratosthenes(int mmax){
-    vector<bool> primes_erat(mmax, true);
-    primes_erat[0] = false;
-    primes_erat[1] = false;
-    for (int prime = 2; prime < primes_erat.size(); prime++) {
-        if (primes_erat[prime]) {
-            primes.push_back(prime);
-            for (int i = prime * prime; i < primes_erat.size(); i += prime) {
-                primes_erat[i] = false;
+vector<int> sieve(int mmax){
+    vector<bool> p(mmax, true);
+    vector<int> res;
+    p[0] = false;
+    p[1] = false;
+    for (int prime = 2; prime < p.size(); prime++) {
+        if (p[prime]) {
+            res.push_back(prime);
+            for (int i = prime * prime; i < p.size(); i += prime) {
+                p[i] = false;
             }
         }
     }
+    return res;
+}
+
+vector<int> sift_under_sqrt(const int Mmax) {
+    // staci nam cisla do sqrt(M_max)
+
+    const int limit = (int)sqrt(Mmax);
+    vector<bool> A(limit+1, true);
+    for (int i = 2; i <= limit; ++i) {
+        if(A[i]) {
+            int i_incr = 0;
+            int j = i*i + i*i_incr;
+            while (j <= limit) {
+                A[j] = false;
+                i_incr++;
+                j = i*i + i*i_incr;
+            }
+        }
+    }
+
+    vector<int> primes;
+
+    for (int i = 2; i < A.size(); ++i) { // 2 neni validni generator
+        if (A[i]) {
+            // i is prime
+            primes.push_back(i);
+            // valid generator?
+            if(i==2)  {
+                continue;
+            }
+        }
+    }
+
+    return primes;
 }
 
 unsigned long modulo_multiplication(const unsigned long& a, const unsigned long& b, const unsigned long& m) {
@@ -37,7 +71,7 @@ unsigned long modulo_multiplication(const unsigned long& a, const unsigned long&
 
 
 
-void find_M(const int& size, const vector<int>& combs, const long long& combs_product, const long long& acc){
+void find_M(const int& size, const vector<int>& combs, const long long& combs_product, const long long& acc, int& count){
     for (int i = size; i < combs.size(); ++i) {
         if (acc * combs[i] <= Mmax){
             const long long& M = acc * combs[i];
@@ -45,11 +79,11 @@ void find_M(const int& size, const vector<int>& combs, const long long& combs_pr
             if (A < M){
                 for (long long c = 1; c < M; ++c) {
                     if (__gcd(c, M) == 1 && (modulo_multiplication(A,Xo,M)+c)%M == x/*(A*Xo+c)%M==x*/ ){
-                        G += 1;
+                        count += 1;
                     }
                 }
             };
-            find_M(i, combs, combs_product, M);
+            find_M(i, combs, combs_product, M, count);
         }else{
             break;
         }
@@ -57,14 +91,14 @@ void find_M(const int& size, const vector<int>& combs, const long long& combs_pr
 }
 
 
-void find_combs(const int& index, const int& size, vector<int>& combs, const long long& acc, const int& f, const vector<int>& prms){
+void find_combs(const int& index, const int& size, vector<int>& combs, const long long& acc, const int& f, const vector<int>& prms, int& count){
     if (size == f){
-        find_M(0, combs,acc, acc);
+        find_M(0, combs,acc, acc, count);
     }else{
         for (int i = index; i < prms.size(); ++i) {
             combs[size] = prms[i];
             if (acc*prms[i] <= Mmax){
-                find_combs(i + 1, size + 1, combs,acc*prms[i], f, prms);
+                find_combs(i + 1, size + 1, combs,acc*prms[i], f, prms, count);
             }else{
                 break;
             }
@@ -78,9 +112,9 @@ void find_combs(const int& index, const int& size, vector<int>& combs, const lon
 
 int main() {
     cin >> F >> Mmax >> Xo >> x;
-    G = 0;
-    eratosthenes(Mmax);
+    int count = 0;
+    vector<int> PRIMES = sieve(Mmax);
     vector<int> combs(F);
-    find_combs(0, 0, combs,1, F, primes);
-    cout << G << endl;
+    find_combs(0, 0, combs,1, F, PRIMES, count);
+    cout << count << endl;
 }
