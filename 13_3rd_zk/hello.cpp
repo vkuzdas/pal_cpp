@@ -5,7 +5,6 @@
 #include <regex>
 #include <algorithm>
 
-using namespace std;
 
 using namespace std;
 using uint = unsigned int;
@@ -20,9 +19,29 @@ using ci = const int;
 
 
 
-int F, Mmax, x0, x;
+uint F, Mmax, x0, x;
 vector<int> PRIMES;
 int COUNT = 0;
+int FIRST_SIZE = 0;
+int FIRST_INDEX = 0;
+
+vector<int> sieve(int mmax);
+cll get_A(cll& combs_product, cll& M);
+void search_modulo( const vector<int>& combinations, cll& combs_product,ci c_prev, cll& pfp, ci& size);
+void search_the_combinations(ci& index, ci& size, vector<int>& combs, cll& acc, ci& f);
+
+
+
+
+int main() {
+    cin >> F >> Mmax >> x0 >> x;
+    PRIMES = sieve(Mmax);
+    vector<int> combs(F);
+    search_the_combinations(FIRST_INDEX, FIRST_SIZE, combs,1, F);
+    cout << COUNT << endl;
+}
+
+
 
 
 
@@ -52,12 +71,32 @@ cll get_A(cll& combs_product, cll& M) {
     }
 }
 
-void search_modulo(ci& size, const vector<int>& combinations, cll& combs_product,ci c_prev, cll& pfp){
+
+
+void search_the_combinations(ci& index, ci& size, vector<int>& combs, cll& acc, ci& f){
+    if (size != f) {
+        for (int i = index; i < PRIMES.size(); ++i) {
+            combs[size] = PRIMES[i];
+            if (acc * PRIMES[i] > Mmax) {
+                break;
+            } else {
+                search_the_combinations(i + 1, size + 1, combs, acc * PRIMES[i], f);
+            }
+        }
+    } else {
+        search_modulo(combs, acc, FIRST_INDEX, acc, FIRST_SIZE);
+    }
+
+}
+
+
+
+void search_modulo( const vector<int>& combinations, cll& combs_product,ci c_prev, cll& pfp, ci& size){
     for (int i = size; i < combinations.size(); ++i) {
         if (pfp * combinations[i] > Mmax) {
             break;
         } else {
-            cll &M = pfp * combinations[i];
+            cll &M =  combinations[i] * pfp;
             cll &A = get_A(combs_product, M);
             auto C_prev = c_prev;
             if (A >= M) {}
@@ -73,35 +112,7 @@ void search_modulo(ci& size, const vector<int>& combinations, cll& combs_product
                     }
                 }
             }
-            search_modulo(i, combinations, combs_product, C_prev, M);
+            search_modulo(combinations, combs_product, C_prev, M, i);
         }
     }
-}
-
-
-void search_the_combinations(ci& index, ci& size, vector<int>& combs, cll& acc, ci& f){
-    if (size != f) {
-        for (int i = index; i < PRIMES.size(); ++i) {
-            combs[size] = PRIMES[i];
-            if (acc * PRIMES[i] > Mmax) {
-                break;
-            } else {
-                search_the_combinations(i + 1, size + 1, combs, acc * PRIMES[i], f);
-            }
-        }
-    } else {
-        search_modulo(0, combs, acc, 0, acc);
-    }
-
-}
-
-
-
-
-int main() {
-    cin >> F >> Mmax >> x0 >> x;
-    PRIMES = sieve(Mmax);
-    vector<int> combs(F);
-    search_the_combinations(0, 0, combs,1, F);
-    cout << COUNT << endl;
 }
