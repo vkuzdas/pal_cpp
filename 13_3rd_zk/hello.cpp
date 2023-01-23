@@ -41,7 +41,7 @@ unsigned long modulo_multiplication(const unsigned long& a, const unsigned long&
 
 
 
-void find_M(const int& size, const vector<int>& combs, const long long& combs_product,const int c_prev, const long long& acc){
+void find_M(const int& size, const vector<uint>& combs, const long long& combs_product,const int c_prev, const long long& acc){
     for (int i = size; i < combs.size(); ++i) {
         if (acc * combs[i] <= Mmax){
             const long long& M = acc * combs[i];
@@ -80,7 +80,7 @@ void find_M(const int& size, const vector<int>& combs, const long long& combs_pr
 }
 
 
-void find_combs(const int& index, const int& size, vector<int>& combs, const long long& acc, const uint& f){
+void find_combs(const int& index, const int& size, vector<uint>& combs, const long long& acc, const uint& f){
     if (size == f){
         find_M(0, combs,acc,0, acc);
     }else{
@@ -100,9 +100,14 @@ void find_combs(const int& index, const int& size, vector<int>& combs, const lon
 
 
 int main() {
+    int frist_index = 0;
+    int first_size = 0;
+
+
     cin >> F >> Mmax >> Xo >> x;
     PRIMES = sieve(Mmax);
-    vector<int> combs(F);
-    find_combs(0, 0, combs,1, F);
+
+    vector<uint> combs(F);
+    find_combs(frist_index, first_size, combs,1, F);
     cout << COUNT << endl;
 }
