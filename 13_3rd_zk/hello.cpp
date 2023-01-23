@@ -6,24 +6,28 @@
 #include <algorithm>
 
 using namespace std;
+using uint = unsigned int;
 
 
-int F, Mmax, Xo, x, G;
-vector<int> primes;
+uint F, Mmax, Xo, x;
+uint COUNT = 0;
+vector<uint> PRIMES;
 
 
-void eratosthenes(int mmax){
-    vector<bool> primes_erat(mmax, true);
-    primes_erat[0] = false;
-    primes_erat[1] = false;
-    for (int prime = 2; prime < primes_erat.size(); prime++) {
-        if (primes_erat[prime]) {
-            primes.push_back(prime);
-            for (int i = prime * prime; i < primes_erat.size(); i += prime) {
-                primes_erat[i] = false;
+vector<uint> sieve(uint mmax){
+    vector<uint> result;
+    vector<bool> p_bool(mmax, true);
+    p_bool[0] = false;
+    p_bool[1] = false;
+    for (int p = 2; p < p_bool.size(); p++) {
+        if (p_bool[p]) {
+            result.push_back(p);
+            for (int i = p*p; i < p_bool.size(); i = i + p) {
+                p_bool[i] = false;
             }
         }
     }
+    return result;
 }
 
 unsigned long modulo_multiplication(const unsigned long& a, const unsigned long& b, const unsigned long& m) {
@@ -55,7 +59,7 @@ void find_M(const int& size, const vector<int>& combs, const long long& combs_pr
                     long long c = (x - A*Xo) % M;
                     c = c < 0 ? c + M : c;
                     if (__gcd(c, M) == 1 && (A*Xo+c)%M == x) {
-                        G += 1;
+                        COUNT += 1;
                         C_prev = c;
                     }
                 }/*else{
@@ -76,14 +80,14 @@ void find_M(const int& size, const vector<int>& combs, const long long& combs_pr
 }
 
 
-void find_combs(const int& index, const int& size, vector<int>& combs, const long long& acc, const int& f, const vector<int>& prms){
+void find_combs(const int& index, const int& size, vector<int>& combs, const long long& acc, const uint& f){
     if (size == f){
         find_M(0, combs,acc,0, acc);
     }else{
-        for (int i = index; i < prms.size(); ++i) {
-            combs[size] = prms[i];
-            if (acc*prms[i] <= Mmax){
-                find_combs(i + 1, size + 1, combs,acc*prms[i], f, prms);
+        for (int i = index; i < PRIMES.size(); ++i) {
+            combs[size] = PRIMES[i];
+            if (acc*PRIMES[i] <= Mmax){
+                find_combs(i + 1, size + 1, combs,acc*PRIMES[i], f);
             }else{
                 break;
             }
@@ -97,9 +101,8 @@ void find_combs(const int& index, const int& size, vector<int>& combs, const lon
 
 int main() {
     cin >> F >> Mmax >> Xo >> x;
-    G = 0;
-    eratosthenes(Mmax);
+    PRIMES = sieve(Mmax);
     vector<int> combs(F);
-    find_combs(0, 0, combs,1, F, primes);
-    cout << G << endl;
+    find_combs(0, 0, combs,1, F);
+    cout << COUNT << endl;
 }
