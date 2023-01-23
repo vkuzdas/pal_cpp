@@ -40,39 +40,25 @@ unsigned long modulo_multiplication(const unsigned long& a, const unsigned long&
 
 
 
-
-void find_M(const int& size, const vector<uint>& combs, const long long& combs_product,const int c_prev, const long long& acc){
+void find_M(const int& size, const vector<uint>& combs, const long long& pf_prod, const int c_prev, const long long& acc){
     for (int i = size; i < combs.size(); ++i) {
         if (acc * combs[i] <= Mmax){
             const long long& M = acc * combs[i];
-            const long long& A = (M % 4 == 0) ? combs_product*2 + 1 : combs_product + 1;
+            long long A = pf_prod + 1;
+            if(M % 4 == 0) A = pf_prod * 2 + 1;
             auto C_prev = c_prev;
             if (A < M){
                 if (__gcd(A,M)== 1) {
-                    //Oba kody zakomenteny fungujou
-//                    long long c = (x - (long long) modulo_multiplication(A, Xo, M)) % M;
-//                    c = c < 0 ? c + M : c;
-//                    if (__gcd(c, M) == 1 && (modulo_multiplication(A,Xo,M)+c)%M == x) {
-//                        G += 1;
-//                        C_prev = c;
-//                    }
+
                     long long c = (x - A*Xo) % M;
                     c = c < 0 ? c + M : c;
                     if (__gcd(c, M) == 1 && (A*Xo+c)%M == x) {
                         COUNT += 1;
                         C_prev = c;
                     }
-                }/*else{
-                    for (long long c = 1; c < M; ++c) {
-                        if (__gcd(c, M) == 1 && (modulo_multiplication(A,Xo,M)+c)%M == x*//*(A*Xo+c)%M==x*//* ){
-                            G += 1;
-                            C_prev +=1;
-                        }
-                    }
-                }*/
-
-            };
-            find_M(i, combs, combs_product, C_prev, M);
+                }
+            }
+            find_M(i, combs, pf_prod, C_prev, M);
         }else{
             break;
         }
@@ -80,14 +66,14 @@ void find_M(const int& size, const vector<uint>& combs, const long long& combs_p
 }
 
 
-void find_combs(const int& index, const int& size, vector<uint>& combs, const long long& acc, const uint& f){
+void find_combs(const int& index, const int& size, vector<uint>& combs, const long long& pf_prod, const uint& f){
     if (size == f){
-        find_M(0, combs,acc,0, acc);
+        find_M(0, combs, pf_prod, 0, pf_prod);
     }else{
         for (int i = index; i < PRIMES.size(); ++i) {
             combs[size] = PRIMES[i];
-            if (acc*PRIMES[i] <= Mmax){
-                find_combs(i + 1, size + 1, combs,acc*PRIMES[i], f);
+            if (pf_prod * PRIMES[i] <= Mmax){
+                find_combs(i + 1, size + 1, combs, pf_prod * PRIMES[i], f);
             }else{
                 break;
             }
