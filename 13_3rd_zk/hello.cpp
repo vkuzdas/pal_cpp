@@ -40,12 +40,15 @@ unsigned long modulo_multiplication(const unsigned long& a, const unsigned long&
 
 
 
-void find_M(const int& size, const vector<uint>& combs, const long long& pf_prod, const int c_prev, const long long& acc){
-    for (int i = size; i < combs.size(); ++i) {
+void find_M(const uint& size, const vector<uint>& combs, const long long& pf_prod, const int c_prev, const long long& acc){
+    for (uint i = size; i < combs.size(); ++i) {
+
         if (acc * combs[i] <= Mmax){
+
             const long long& M = acc * combs[i];
             long long A = pf_prod + 1;
             if(M % 4 == 0) A = pf_prod * 2 + 1;
+
             auto C_prev = c_prev;
             if (A < M){
                 if (__gcd(A,M)== 1) {
