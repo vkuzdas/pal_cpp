@@ -163,9 +163,12 @@ condense_comps(vector<vector<dw_pair>> &adj, vector<vector<int>> &list_of_comps,
 
 
 struct Edge {
+    int id;
     int src;
     int dest;
     int cost;
+
+    Edge(int id, int src, int dest, int cost) : id(id), src(src), dest(dest), cost(cost) {}
 
     Edge(int src, int dest, int cost) : src(src), dest(dest), cost(cost) {}
 
@@ -199,30 +202,56 @@ void kruskal_union_sets(vector<int> &parent, vector<int> &rank, int a, int b) {
 }
 
 
-int kruskal (vector<Edge> &edges) {
+bool same_comp(int src, int dest, vector<vector<dw_pair>> &adj) {
+    for(auto src_neigh : adj[src]) {
+        if(src_neigh.first == dest) return true;
+    }
+    for(auto dest_neigh : adj[dest]) {
+        if(dest_neigh.first == dest) return true;
+    }
+    return false;
+}
 
-    vector<int> parent;
-    vector<int> rank;
+vector<int> PARENT;
+vector<int> RANK;
+
+
+bool dpth_one_lesser(int src, int dest, vector<int> &depths) {
+    if(depths[src] == depths[dest]-1 || depths[src] == depths[dest]-1) {
+        return true;
+    }
+    return false;
+}
+
+int kruskal_second(vector<Edge> &edges, vector<int> &depth, vector<vector<dw_pair>> &adj) {
+    // chci takove hrany aby to bylo v jinem setu
+    // chci takove hrany aby to bylo do depth -1
+
     int n = edges.size();
 
     int cost = 0;
     vector<Edge> result;
-    parent.resize(n);
-    rank.resize(n);
+    PARENT.resize(n);
+    RANK.resize(n);
     for (int i = 0; i < n; i++)
-        kruskal_make_set(parent, rank, i);
+        kruskal_make_set(PARENT, RANK, i);
 
     sort(edges.begin(), edges.end());
 
     for (Edge e : edges) {
 
-        int src_set = kruskal_find_set(parent, rank, e.src);
-        int dest_set = kruskal_find_set(parent, rank, e.dest);
+        int src_set = kruskal_find_set(PARENT, RANK, e.src);
+        int dest_set = kruskal_find_set(PARENT, RANK, e.dest);
 
+        // zaprve kontrolujeme jestli jsou v jine komponente
+        // za druhe jestli jsou ve stejne hloubce
+        // za treti zda jsou ve stejne komponente
         if (src_set != dest_set) {
-            cost += e.cost;
-            result.push_back(e);
-            kruskal_union_sets(parent, rank, e.src, e.dest);
+            if(dpth_one_lesser(e.src, e.dest, depth)) {
+                cost += e.cost;
+                result.push_back(e);
+                kruskal_union_sets(PARENT, RANK, e.src, e.dest);
+            }
         }
     }
     return cost;
@@ -231,14 +260,68 @@ int kruskal (vector<Edge> &edges) {
 
 
 
+
+int kruskal_first(vector<Edge> &edges, vector<int> &depth, vector<vector<dw_pair>> &adj, vector<bool> &first_krusk_visited) {
+
+//    vector<int> parent;
+//    vector<int> rank;
+    int n = edges.size();
+
+    int cost = 0;
+    vector<Edge> result;
+    PARENT.resize(n);
+    RANK.resize(n);
+    for (int i = 0; i < n; i++)
+        kruskal_make_set(PARENT, RANK, i);
+
+    sort(edges.begin(), edges.end());
+
+
+    vector<bool> to_delete(edges.size());
+    for (Edge e : edges) {
+        int src_set = kruskal_find_set(PARENT, RANK, e.src);
+        int dest_set = kruskal_find_set(PARENT, RANK, e.dest);
+
+        // zaprve kontrolujeme jestli jsou v jine komponente
+        // za druhe jestli jsou ve stejne hloubce
+        // za treti zda jsou ve stejne komponente
+        if (src_set != dest_set) {
+            if(depth[e.src] == depth[e.dest]) {
+                if(same_comp(e.src, e.dest, adj)) {
+                    cost += e.cost;
+                    result.push_back(e);
+                    kruskal_union_sets(PARENT, RANK, e.src, e.dest);
+                    to_delete[e.id] = true;
+                }
+            }
+        }
+    }
+    vector<Edge> new_edges;
+    for (int i = 0; i < edges.size(); ++i) {
+        if (!to_delete[i]) {
+            new_edges.push_back(edges[i]);
+        }
+    }
+    edges = new_edges;
+    return cost;
+}
+
+
+
+
 int main() {
     int N, M;
+    int id = 0;
     cin >> N >> M;
     vector<vector<dw_pair>> adj(N+1);
+    vector<Edge> edges;
 
     for (int i = 1; i < M+1; ++i) {
         int src, dst, wght;
         cin >> src >> dst >> wght;
+        Edge e = Edge(id, src, dst, wght);
+        id += 1;
+        edges.push_back(e);
         adj[src].push_back({dst, wght});
         adj[dst].push_back({src, wght});
     }
@@ -275,31 +358,15 @@ int main() {
         node_of_depth[depth].push_back({id, depth, false});
     }
 
-
-
-
-
-
-
-
     int cost = 0;
-    vector<bool> prim_visited(N, false);
+    vector<bool> first_krusk_visited(N, false);
     vector<vector<int>> list_of_comps;
-    list_of_comps.push_back({center});
     for (int curr_depth = 1; curr_depth < depth_from_center + 1; ++curr_depth) {
         vector<Node> nodes = node_of_depth[curr_depth];
-        for (Node n : nodes) {
-            if(!prim_visited[n.id]) {
-                auto p = prim_mst_per_depth(adj, nodes, n, curr_depth, depths, prim_visited);
-                list_of_comps.push_back(p.second);
-                cost += p.first;
-            }
-        }
+        cost += kruskal_first(edges, depths, adj, first_krusk_visited);
     }
 
-    vector<vector<dw_pair>> condensed = condense_comps(adj, list_of_comps, depths, N);
-
-    // nyni prim pro spojeni
+    kruskal_second(edges, depths, adj);
 
 
 
