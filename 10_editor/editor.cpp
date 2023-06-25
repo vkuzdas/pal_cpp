@@ -47,7 +47,7 @@ int minimum(int a, int b, int c) {
 }
 
 /// Function to calculate the Levenshtein distance between two strings
-vector<int> editor_ld(string shorter, string longer, bool print_table) {
+vector<int> last_row_levenDist(string shorter, string longer, bool print_table) {
     int len1 = (int) shorter.length();
     int len2 = (int) longer.length();
 
@@ -101,7 +101,7 @@ vector<int> editor_ld(string shorter, string longer, bool print_table) {
 
 
 vector<int> find_next_cuts(string P, string T, int D) {
-    vector<int> res = editor_ld(P, T, false);
+    vector<int> res = last_row_levenDist(P, T, false);
     vector<int> found_idxs={};
 
     for (int i = 0; i < res.size(); ++i) {

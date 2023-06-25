@@ -299,6 +299,7 @@ bool decrement(vector<int> &factorials, vector<int> &factorials_original) {
     return false;
 }
 
+/// kontroluje jestli mapovane hrany existuji v obou grafech
 bool check_mapping(vector<int> &index_map, vector<vector<int>> &adj_A, vector<vector<int>> &adj_B) {
     for (int i = 0; i < adj_A.size(); ++i) {
         for (int j = 0; j < adj_A[i].size(); ++j) {
@@ -327,7 +328,7 @@ bool test_mappings_edges_OK(vector<vector<int>> &possible_mappings,
                             vector<vector<int>> &adj_A, vector<vector<int>> &adj_B,
                             vector<bool> &A_is_fast, vector<bool> &B_is_fast) {
 
-    vector<pair<vector<int>, vector<int>>> B_A_pairing;
+    vector<pair<vector<int>, vector<int>>> B_A_pairing; // ktere uzly jdou na ktere uzly
 
     for (int i = 0; i < possible_mappings.size(); ++i) {
         int mapping_src = i;
@@ -350,7 +351,7 @@ bool test_mappings_edges_OK(vector<vector<int>> &possible_mappings,
         }
     }
 
-    vector<int> factorials;
+    vector<int> factorials; // kolik faktorialu nutno provest pro kazdej pairing
     for (int i = 0; i < B_A_pairing.size(); ++i) {
         int s = (int)B_A_pairing[i].first.size();
         int f = fact(s);
@@ -360,8 +361,8 @@ bool test_mappings_edges_OK(vector<vector<int>> &possible_mappings,
     auto factorials_original = factorials;
     vector<vector<int>> valid_mappings;
     do {
-        // TODO: gen_perms lze cacheovat
-        vector<int> index_map = gen_perms(factorials, B_A_pairing, adj_A);
+        vector<int> index_map = gen_perms(factorials, B_A_pairing, adj_A);//
+        // check mapping = kontrola zda mapovane hrany existuji v obou grafech
         bool valid_mapping = check_mapping(index_map, adj_A, adj_B);
         if(valid_mapping) {
 //            cout << "           [";  for (int n : index_map) cout << n << ", ";  cout << "]\n";
@@ -503,11 +504,12 @@ int main() {
             vector<bool> mapped_A_nodes(adjusted_A_D2.size(), false);
             for (auto const& op : adjusted_A_D2) { // pro vsechny vektory D2 v A
                 int A_node = op.first;
-                vector<int > old_nei_degs = op.second;
+                vector<int> old_nei_degs = op.second;
                 // najdi tento vektor uvnitr adjusted_B_D2
                 // pokud tam neni, vrat prazdnej mapping
 
                 for (auto const& np : adjusted_B_D2) { // pro vsechny vektory D2 v B
+
                     int B_node = np.first;
                     vector<int> new_nei_degs = np.second;
                     bool vectors_equal = true;

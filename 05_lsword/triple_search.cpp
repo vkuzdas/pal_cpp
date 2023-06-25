@@ -127,6 +127,7 @@ void BFS_from_start(vector<vector<ld_pair>> nfa, vector<struct State>& states) {
         for (auto pair : nfa[curr]) {
             char edge = pair.first;
             State neig_state = states[pair.second];
+
             bool found_better = lex_cmp(neig_state.path_from_start, curr_state.path_from_start + edge);
             if(neig_state.path_from_start.empty() || found_better) {
                 neig_state.path_from_start = curr_state.path_from_start + edge;
@@ -134,6 +135,7 @@ void BFS_from_start(vector<vector<ld_pair>> nfa, vector<struct State>& states) {
                 neig_state.sequence.push_back(curr_state.id);
             }
             /// else { uz tam nejlepsi cesta je }
+
             states[neig_state.id] = neig_state;
             if (visited[neig_state.id]) continue;
             Q.push(neig_state.id);
@@ -159,11 +161,16 @@ BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<State>& states, vector<uint> 
         uint curr = Q.front(); Q.pop();
         if (visited[curr]) continue;
         visited[curr] = true;
+
         State curr_state = states[curr];
+
         for (auto pair : r_nfa[curr]) {
+
             char edge = pair.first;
             State neig_state = states[pair.second];
+
             if(is_final[neig_state.id]) continue; /// nejblizsi cesta z finalu do finalu je sam do sebe
+
             bool found_better = lex_cmp(neig_state.path_to_end, edge + curr_state.path_to_end);
             if(neig_state.path_to_end.empty() || found_better) {
                 neig_state.path_to_end = edge + curr_state.path_to_end;
@@ -171,6 +178,7 @@ BFS_from_end(vector<vector<ld_pair>> r_nfa, vector<State>& states, vector<uint> 
                 neig_state.sequence.push_back(curr_state.id);
             }
             /// else { uz tam nejlepsi cesta je }
+
             states[neig_state.id] = neig_state;
             if (visited[neig_state.id]) continue;
             Q.push(neig_state.id);
@@ -313,12 +321,16 @@ int main() {
     for(uint src = 0; src < nfa.size(); src++) {
         for(ld_pair d_pair : nfa[src]) {
             if (d_pair.first == S[0]) { // pro kazdou hranu na ktere je start char
+
                 size_t b_len = states[src].path_from_start.size();
                 size_t e_len = states[src].path_to_end.size();
                 size_t m = max(e_len, S.size());
-                if (((b_len + m) <= final_res.size())) {
+
+                /// DFS ze sourcu pokud B+max(E/S) <= current
+                if ( (b_len + m) <= final_res.size() ) {
                     DFS(nfa, states, d_pair, S, src, 0);
                 }
+
             }
         }
     }

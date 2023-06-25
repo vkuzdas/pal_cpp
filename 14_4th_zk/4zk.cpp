@@ -230,11 +230,10 @@ int kruskal_second(vector<Edge> &edges, vector<int> &depth, vector<vector<dw_pai
     int n = edges.size();
 
     int cost = 0;
-    vector<Edge> result;
-    PARENT.resize(n);
-    RANK.resize(n);
-    for (int i = 0; i < n; i++)
-        kruskal_make_set(PARENT, RANK, i);
+//    PARENT.resize(n);
+//    RANK.resize(n);
+//    for (int i = 0; i < n; i++)
+//        kruskal_make_set(PARENT, RANK, i);
 
     sort(edges.begin(), edges.end());
 
@@ -249,7 +248,6 @@ int kruskal_second(vector<Edge> &edges, vector<int> &depth, vector<vector<dw_pai
         if (src_set != dest_set) {
             if(dpth_one_lesser(e.src, e.dest, depth)) {
                 cost += e.cost;
-                result.push_back(e);
                 kruskal_union_sets(PARENT, RANK, e.src, e.dest);
             }
         }
@@ -265,14 +263,9 @@ int kruskal_first(vector<Edge> &edges, vector<int> &depth, vector<vector<dw_pair
 
 //    vector<int> parent;
 //    vector<int> rank;
-    int n = edges.size();
 
     int cost = 0;
     vector<Edge> result;
-    PARENT.resize(n);
-    RANK.resize(n);
-    for (int i = 0; i < n; i++)
-        kruskal_make_set(PARENT, RANK, i);
 
     sort(edges.begin(), edges.end());
 
@@ -288,10 +281,13 @@ int kruskal_first(vector<Edge> &edges, vector<int> &depth, vector<vector<dw_pair
         if (src_set != dest_set) {
             if(depth[e.src] == depth[e.dest]) {
                 if(same_comp(e.src, e.dest, adj)) {
+                    if(first_krusk_visited[e.src] && first_krusk_visited[e.dest]) continue;
                     cost += e.cost;
                     result.push_back(e);
                     kruskal_union_sets(PARENT, RANK, e.src, e.dest);
                     to_delete[e.id] = true;
+                    first_krusk_visited[e.src] = true;
+                    first_krusk_visited[e.dest] = true;
                 }
             }
         }
@@ -334,6 +330,7 @@ int main() {
     int depth_from_center = INT32_MAX;
     vector<int> depths;
     int center = -1;
+    long long int overall_cost = LONG_LONG_MAX;
     for (int from = 1; from < N + 1; ++from) {
 
         pair<int, vector<int>> pair = BFS_distance(adj, from);
@@ -341,40 +338,56 @@ int main() {
         int curr_max_depth = pair.first;
         vector<int> curr_max_depths = pair.second;
 
-        if (curr_max_depth < depth_from_center) {
+        if (curr_max_depth <= depth_from_center) {
             center = from; /// NASLI JSME CENTRUM
             depth_from_center = curr_max_depth;
             depths = curr_max_depths;
+
+
+            vector<Edge> e_copy = edges;
+
+            /// ROZDELIME NODY PODLE HLOUBKY
+            vector<vector<Node>> node_of_depth(depth_from_center+1);
+            for (int i = 1; i < depths.size(); ++i) {
+                int id = i;
+                int depth = depths[i];
+                node_of_depth[depth].push_back({id, depth, false});
+            }
+
+            long long int cost = 0;
+            vector<bool> first_krusk_visited(N, false);
+            vector<vector<int>> list_of_comps;
+
+
+            int n = e_copy.size();
+            PARENT.resize(n);
+            RANK.resize(n);
+            for (int i = 0; i < n; i++)
+                kruskal_make_set(PARENT, RANK, i);
+
+
+            for (int curr_depth = 1; curr_depth < depth_from_center + 1; ++curr_depth) {
+                vector<Node> nodes = node_of_depth[curr_depth];
+                cost += kruskal_first(e_copy, depths, adj, first_krusk_visited);
+            }
+
+            cost += kruskal_second(e_copy, depths, adj);
+
+            // kontrola stejne komponenty
+            auto parent = PARENT;
+            int comp_must_be = PARENT[1];
+            for (int i = 2; i < N+1; ++i) {
+                if(PARENT[i] != comp_must_be) {
+                    // takova kostra neni
+//                    cout << "nejde spojit!" << endl;
+                    cost = LONG_LONG_MAX;
+                }
+            }
+            overall_cost = min(overall_cost, cost);
         }
     }
 
-
-
-    /// ROZDELIME NODY PODLE HLOUBKY
-    vector<vector<Node>> node_of_depth(depth_from_center+1);
-    for (int i = 1; i < depths.size(); ++i) {
-        int id = i;
-        int depth = depths[i];
-        node_of_depth[depth].push_back({id, depth, false});
-    }
-
-    int cost = 0;
-    vector<bool> first_krusk_visited(N, false);
-    vector<vector<int>> list_of_comps;
-    for (int curr_depth = 1; curr_depth < depth_from_center + 1; ++curr_depth) {
-        vector<Node> nodes = node_of_depth[curr_depth];
-        cost += kruskal_first(edges, depths, adj, first_krusk_visited);
-    }
-
-    kruskal_second(edges, depths, adj);
-
-
-
-    cout << "center is: " << center << endl;
-    cout << "cost is: " << cost;
-
-
-
+    cout << overall_cost;
 
 
 }

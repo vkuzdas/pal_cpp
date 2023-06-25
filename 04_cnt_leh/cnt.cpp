@@ -41,6 +41,8 @@ void print_set(const set<S> &s, const string &name) {
     cout << "]\n";
 }
 
+// prime faktory mensi nez D
+// algoritmus rozklad na soucin
 set<ulli> get_prime_factors_under_D(const uint D, ulli n) {
     set<ulli> pf;
     ulli prime = 2;
@@ -58,7 +60,7 @@ set<ulli> get_prime_factors_under_D(const uint D, ulli n) {
 }
 
 
-// zaroven musime spocitat ktera cisla z techto obsahuji PF < D
+/// zaroven musime spocitat ktera cisla z techto obsahuji PF < D
 vector<uint> sift_under_sqrt(const ulli n, const uint D, uint& subtract) {
     // staci nam cisla do sqrt(M_max)
     std::chrono::time_point<std::chrono::system_clock> start, end;
@@ -242,12 +244,14 @@ int main() {
 
     vector<uint> p_under_D = get_primes(D);
 
+    /// exponenty odpovidaji na kolikatou mocnime prvocislo mensi nez D
     vector<uint> exponents(p_under_D.size(),0);
     exponents[0] = 1;
     uint incr_index = (uint)exponents.size()-1;
     uint shift;
     uint overflow_on_index;
     while(true) {
+        /// M1 je slozene vynasobenim mocnin prvocisel
         const ulli M1 = M1_produce(p_under_D, exponents);
         const ulli M = M1 + 1;
         const ulli limit = (uint)sqrt(M_max);
@@ -258,6 +262,8 @@ int main() {
                 overflow_on_index = incr_index;
                 continue;
             }
+            /// pokud jsme nasli prvocislo (vydelim prvocisli z eratostena)
+            /// pocitame root
             if (is_prime(M, p_under_sqrt)) {
                 if(DBG_PRINT) cout << R << "   " << count <<"-Next prime: " << M << endl;
                 R = max(R, get_root(M, exponents, p_under_D));
@@ -289,7 +295,7 @@ int _main() {
     exponents[exponents.size()-1] = 1;
     uint incr_index = (uint)exponents.size()-1;
     uint shift;
-    uint overflow_on_index;
+    uint overflow_on_index; // nastane moment kdy dalsi mocnina cisla nedava smysl, v inkrementu se pak musime posunout dal
     while(1) {
         ulli M = M1_produce(primes, exponents);
         if(M < cap) {

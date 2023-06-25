@@ -2,7 +2,7 @@ Sam jsem prisel na jeden algo kterej to asi resi
 Nevim ale jestli neni pomalej
 (ukazalo se ze byl spatne protoze jsem si spatne precetl zadani
 
-Rimma to udelala takhle:
+Rimma:
 1. Count the number of servers in the old graph. = k
 2. In the new graph generate all possible k-subsets. In each k-subset remove connections
 that lead to servers, that are not in the current subset. Only after that check the for the isomorphism with

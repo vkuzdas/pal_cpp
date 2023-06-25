@@ -18,10 +18,6 @@ int REPLACE = 0;
 
 
 
-
-
-
-
 void ld_dbg(string pattern, string text, vector<vector<int>> dp) {
     // print dlouheho stringu nahore
     cout << "    ";
@@ -386,7 +382,7 @@ int main() {
     vector<vector<int>> clips_on_pos = clips_in_chain(chain, clip_schemes);
 
     pair<vector<vector<int>>, vector<vector<int>>> dp_op =
-            leven_clip_replace(demand, chain, CF, RF, clips_on_pos, clip_schemes, false);
+            leven_clip_replace(demand, chain, CF, RF, clips_on_pos, clip_schemes, true);
 
     vector<vector<int>> dp = dp_op.first;
     vector<vector<int>> op = dp_op.second;
@@ -407,8 +403,8 @@ int main() {
             break;
         }
         if(op[r][c] == REPLACE) {
-            c--;
             r--;
+            c--;
         }
         if(op[r][c] != REPLACE) {
             c = c - op[r][c];

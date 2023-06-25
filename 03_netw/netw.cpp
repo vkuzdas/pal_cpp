@@ -249,6 +249,8 @@ bool d1_matches(        vector<bool> &in_subset,
     return true;
 }
 
+
+/// najde mozne mappingy jednoho src na nekolik dst
 vector<vector<uint>> find_possible_mappings(
         vector<bool> &in_subset,
         vector<uint> &curr_subset,
@@ -400,7 +402,7 @@ bool check_mapping(vector<uint> &index_map, vector<vector<uint>> &old_g, vector<
 
 uint test_mappings_edges(vector<vector<uint>> &possible_mappings, vector<vector<uint>> &old_g, vector<vector<wd_pair>> &new_g, vector<bool> &in_subset) {
 
-    vector<pair<vector<uint>, vector<uint>>> o_n_pairing;
+    vector<pair<vector<uint>, vector<uint>>> o_n_pairing; /// old-new pairing - ktere uzly na ktere lze mapovat
 
     for (uint i = 0; i < possible_mappings.size(); ++i) {
         uint mapping_src = i;
@@ -433,8 +435,9 @@ uint test_mappings_edges(vector<vector<uint>> &possible_mappings, vector<vector<
     auto factorials_original = factorials;
     vector<vector<uint>> valid_mappings;
     do {
-        // TODO: gen_perms lze cacheovat
+        // generujeme permutace moznych mapovani na uzly
         vector<uint> index_map = gen_perms(factorials, o_n_pairing, old_g);
+        // kontrolujeme zda se mapovane hrany nachazi v grafu
         bool valid_mapping = check_mapping(index_map, old_g, new_g);
         if(valid_mapping) {
 //            cout << "           [";  for (uint n : index_map) cout << n << ", ";  cout << "]\n";

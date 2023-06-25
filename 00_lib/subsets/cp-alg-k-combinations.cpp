@@ -14,7 +14,7 @@
 using namespace std;
 
 
-void print_choice(const vector<int>& pick) {
+void print_choice(const vector<int> &pick, vector<int> vector) {
     for (auto i: pick)
         cout << " " << i;
     cout << endl;

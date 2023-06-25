@@ -14,7 +14,7 @@ int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, 
 int prim_mst(vector<vector<wd_pair>> &adj, int startV);
 void getInput(int R, vector<vector<pair<int,int>>>& adj);
 void condense_graph(vector<vector<wd_pair>> &adj, vector<int> &districts, int D);
-vector<int> assign_districts(vector<vector<pair<int, int>>> &adj, int D);
+vector<int> BFS_distance(vector<vector<pair<int, int>>> &adj, int from);
 
 
 int main() {
@@ -24,7 +24,7 @@ int main() {
     getInput(R, adj);
 
     // BFS district assign
-    vector<int> districts = assign_districts(adj,  D);
+    vector<int> districts = BFS_distance(adj, D);
 
     // D-krat vytvorime kostru - v kazdem districtu
     int total_cost = 0;
@@ -138,7 +138,7 @@ int prim_mst_per_district(vector<vector<wd_pair>> &adj, vector<int> &districts, 
  * Priradi district do kazdeho mesta na zaklade vzdalenosti k district mestu
  *      (nebo dle toho kterej district ma nizsi ID pokud vzdalenost je stejna)
  */
-vector<int> assign_districts(vector<vector<pair<int, int>>> &adj, int D) {
+vector<int> BFS_distance(vector<vector<pair<int, int>>> &adj, int from) {
     // setup
     vector<int> districts(adj.size());
     vector<int> depth(adj.size());
@@ -146,7 +146,7 @@ vector<int> assign_districts(vector<vector<pair<int, int>>> &adj, int D) {
 
     // nejdrive pridame vsechny districts do Q
     // lowest city is guaranteed to get to the closest first
-    for (int i = 1; i <= D; ++i) {
+    for (int i = 1; i <= from; ++i) {
         depth[i] = 0;
         districts[i] = i;
         q.push(i);

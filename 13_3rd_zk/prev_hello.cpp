@@ -17,10 +17,10 @@ uint FIRST_SIZE = 0;
 ll PF_PROD = 1;
 
 
-vector<uint> sieve(uint mmax, uint lim);
+vector<uint> sieve(uint mmax);
 bool am_lesser(lli& A, lli& M);
 bool prod_prod_lesser(const lli &acc, const vector<uint> &vector, uint& mmax, uint& i);
-void get_M(const uint& size, const vector<uint>& combs, const ll& pf_prod, const uint& c_prev, const ll& pfp);
+void get_M(const uint& size, const vector<uint>& combs, const ll& pf_prod, const int c_prev, const ll& pfp);
 void search_combinations(uint& size, vector<uint>& combinations, uint& index, ll& pf_prod, const uint& f);
 
 
@@ -29,11 +29,13 @@ void search_combinations(uint& size, vector<uint>& combinations, uint& index, ll
 
 int main() {
 
-    cin >> F >> Mmax >> x0 >> x1;
-    PRIMES = sieve(Mmax, F-1);
 
-    vector<uint> c_of_F(F);
-    search_combinations(FIRST_SIZE, c_of_F, FIRST_INDEX, PF_PROD, F);
+
+    cin >> F >> Mmax >> x0 >> x1;
+    PRIMES = sieve(Mmax);
+
+    vector<uint> combs(F);
+    search_combinations(FIRST_SIZE, combs, FIRST_INDEX, PF_PROD, F);
     cout << COUNT << endl;
 }
 

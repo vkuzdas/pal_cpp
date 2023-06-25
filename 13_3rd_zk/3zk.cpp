@@ -113,24 +113,31 @@ void zero_out_exps(vector<int>& exponents, int from) {
     }
 }
 
-bool pars_valid(int &a, int &m, int &x0, int &x1) {
+bool paramaters_are_valid(int &A, int &M, int &x0, int &x1) {
 
-    return false;
+    int neg_C = A*x0 - x1;
+    if(neg_C < 0) {
+        neg_C = neg_C * -1;
+    }
+    int C = neg_C % M;
+    int actual_x1 = (A*x0 + C) % M;
+    bool r = (actual_x1 == x1);
+
+    return r;
 }
+
+int COUNT = 0;
+
 
 int main() {
     int F, Mmax, x0, x1;
-    int count = 0;
     cin >> F >> Mmax >> x0 >> x1;
     // eratosten do sqrt Mmax
 
     vector<int> primes = sift_under_sqrt(Mmax);
-//    print_vec(primes, "PRIMES");
+    print_vec(primes, "PRIMES");
     vector<int> p_indices(F);
-    for (int i = 0; i < F; ++i) {
-        p_indices[i]=i;
-    }
-//    std::iota(p_indices.begin(), p_indices.end(), 0);
+    std::iota(p_indices.begin(), p_indices.end(), 0);
 
     do {
         vector<int> picked_primes = pick_primes(p_indices, primes, F);
@@ -154,38 +161,38 @@ int main() {
                 /// nyni jsem spocital M
                 /// ted z primes zkusime stejnym zpusobem generovat A
             //TODO/////////////////////////////////
-//                int cap2 = M;
-//                if(M==120) {
-//                    cout << "hello";
-//                }
-//                vector<int> exp2(primes.size(),0);
-//                exp2[exp2.size()-1] = 1;
-//                int incr_index2 = (int)exp2.size()-1;
-//                int shift2;
-//                int overflow_on_index2; // nastane moment kdy dalsi mocnina cisla nedava smysl, v inkrementu se pak musime posunout dal
-//                while(true) {
-//                    int A = M1_produce(primes, exp2);
-//                    if(A < cap2) {
-//                        cout << "       A=" << A << " ";
-//                        print_vec(exp2, "exp");
-//                        /// nyni jsem spocital A
-//                        /// ted z musime konstantne zkontrolovat C a generator
-//
-//                        if(pars_valid(A,M,x0,x1)) {
-//                            count++;
-//                        }
-//
-//                        exp2[incr_index2] += 1;
-//                        overflow_on_index2 = incr_index2;
-//                    }
-//                    if(A >= cap2) {
-//                        shift2 = int(exp2.size())-overflow_on_index2;
-//                        if(incr_index2 < shift2) break;
-//                        zero_out_exps(exp2, overflow_on_index2);
-//                        exp2[incr_index2-shift2]++;
-//                        overflow_on_index2 = incr_index2-shift2;
-//                    }
-//                }
+                int cap2 = M;
+                if(M==120) {
+                    cout << "hello";
+                }
+                vector<int> exp2(primes.size(),0);
+                exp2[exp2.size()-1] = 1;
+                int incr_index2 = (int)exp2.size()-1;
+                int shift2;
+                int overflow_on_index2; // nastane moment kdy dalsi mocnina cisla nedava smysl, v inkrementu se pak musime posunout dal
+                while(true) {
+                    int A = M1_produce(primes, exp2);
+                    if(A < cap2) {
+                        cout << "       A=" << A << " ";
+                        print_vec(exp2, "exp");
+                        /// nyni jsem spocital A
+                        /// ted z musime konstantne zkontrolovat C a generator
+
+                        if(pars_valid(A,M,x0,x1)) {
+                            COUNT++;
+                        }
+
+                        exp2[incr_index2] += 1;
+                        overflow_on_index2 = incr_index2;
+                    }
+                    if(A >= cap2) {
+                        shift2 = int(exp2.size())-overflow_on_index2;
+                        if(incr_index2 < shift2) break;
+                        zero_out_exps(exp2, overflow_on_index2);
+                        exp2[incr_index2-shift2]++;
+                        overflow_on_index2 = incr_index2-shift2;
+                    }
+                }
         //TODO//////////////////////////////////
 
 
@@ -204,7 +211,7 @@ int main() {
 
     } while (next_combination(p_indices, F));
 
-    cout << count;
+    cout << COUNT;
 }
 
 
